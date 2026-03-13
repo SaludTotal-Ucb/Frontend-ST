@@ -1,0 +1,47 @@
+{
+  "name": "frontend-st",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky",
+    "biome:check": "biome check .",
+    "biome:write": "biome check --write .",
+    "html:check": "prettier --check \"**/*.html\" --no-error-on-unmatched-pattern",
+    "html:format": "prettier --write \"**/*.html\" --no-error-on-unmatched-pattern",
+    "styles:lint": "stylelint \"**/*.{css,scss,sass}\" --custom-syntax postcss-scss --allow-empty-input",
+    "styles:fix": "stylelint \"**/*.{css,scss,sass}\" --custom-syntax postcss-scss --fix --allow-empty-input",
+    "check:all": "npm run biome:check && npm run styles:lint && npm run html:check",
+    "fix:all": "npm run biome:write && npm run styles:fix && npm run html:format",
+    "lint": "npm run biome:check && npm run styles:lint && npm run html:check",
+    "format": "npm run biome:write && npm run styles:fix && npm run html:format",
+    "lint-staged": "lint-staged"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaludTotal-Ucb/Frontend-ST.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SaludTotal-Ucb/Frontend-ST/issues"
+  },
+  "homepage": "https://github.com/SaludTotal-Ucb/Frontend-ST#readme",
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}": "biome check --write",
+    "**/*.html": "prettier --write --no-error-on-unmatched-pattern",
+    "**/*.{css,scss,sass}": "stylelint --fix --custom-syntax postcss-scss"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.3",
+    "postcss-scss": "^4.0.9",
+    "prettier": "^3.8.1",
+    "stylelint": "^17.4.0",
+    "stylelint-config-standard": "^40.0.0",
+    "stylelint-config-standard-scss": "^17.0.0"
+  }
+}
