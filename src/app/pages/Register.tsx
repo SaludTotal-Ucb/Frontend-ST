@@ -33,13 +33,47 @@ export default function Register() {
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Las contraseñas no coinciden');
+    // 1. Validar Nombre Completo (solo letras y espacios, mín 3 caracteres)
+    const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+    if (formData.fullName.trim().length < 3 || !nameRegex.test(formData.fullName)) {
+      toast.error('Ingrese un nombre válido (solo letras, mín. 3 caracteres)');
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
+    // 2. Validar Carnet de Identidad CI (alfanumérico, mín 5 caracteres)
+    const ciRegex = /^[a-zA-Z0-9]+$/;
+    if (formData.ci.trim().length < 5 || !ciRegex.test(formData.ci)) {
+      toast.error(
+        'Ingrese un Carnet de Identidad válido (mín. 5 caracteres alfanuméricos sin espacios)',
+      );
+      return;
+    }
+
+    // 3. Validar Correo Electrónico
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Ingrese un correo electrónico válido');
+      return;
+    }
+
+    // 4. Validar Teléfono (solo números, permitiendo +, mín 7 u 8 dígitos)
+    const phoneRegex = /^[0-9+]{8,}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      toast.error('Ingrese un número de teléfono válido (mínimo 8 dígitos numéricos)');
+      return;
+    }
+
+    // 5. Validar Contraseñas
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\W_]).{6,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      toast.error(
+        'La contraseña debe tener al menos 6 caracteres, incluir letras, números y un carácter especial',
+      );
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Las contraseñas no coinciden');
       return;
     }
 

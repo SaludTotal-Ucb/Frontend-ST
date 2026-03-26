@@ -4,7 +4,7 @@
 //   historial: import.meta.env.VITE_API_HISTORIAL || 'http://localhost:5000/api', // Microservicio Historial
 // };
 export const API_URLS = {
-  auth: 'http://localhost:4000/api',
+  auth: 'http://localhost:3001/api', // Actualizado al servidor de auth
   citas: 'http://localhost:3000/api',
-  historial: 'http://localhost:5000/api',
+  historial: 'http://localhost:3002/api', // Actualizado al servidor de historial
 };
