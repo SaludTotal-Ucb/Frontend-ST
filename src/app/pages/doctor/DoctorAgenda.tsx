@@ -43,7 +43,7 @@ interface Appointment {
   time: string;
   specialty: string;
   clinic: string;
-  status: 'confirmed' | 'completed' | 'cancelled';
+  status: 'confirmed' | 'completed' | 'cancelled' | 'absent';
 }
 
 export default function DoctorAgenda() {
@@ -119,6 +119,14 @@ export default function DoctorAgenda() {
     });
   };
 
+  const handleMarkAbsent = (id: number) => {
+    setAppointments(appointments.map((a) => (a.id === id ? { ...a, status: 'absent' } : a)));
+
+    toast.warning('Paciente marcado como ausente', {
+      description: 'Se ha registrado la inasistencia. Se aplicará la penalización.',
+    });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'confirmed':
@@ -131,6 +139,12 @@ export default function DoctorAgenda() {
         return <Badge variant="outline">Completada</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelada</Badge>;
+      case 'absent':
+        return (
+          <Badge variant="secondary" className="bg-orange-500 text-white hover:bg-orange-600">
+            Ausente
+          </Badge>
+        );
       default:
         return null;
     }
@@ -257,6 +271,45 @@ export default function DoctorAgenda() {
                                 className="bg-red-600 hover:bg-red-700"
                               >
                                 Sí, cancelar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                            >
+                              <User className="w-4 h-4 mr-2" />
+                              Marcar Ausencia
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Marcar Ausencia del Paciente</AlertDialogTitle>
+                              <AlertDialogDescription className="space-y-2">
+                                <p>
+                                  ¿Confirmas que el paciente {appointment.patient} no se presentó a
+                                  su cita?
+                                </p>
+                                <div className="p-3 bg-orange-50 rounded-md border border-orange-200">
+                                  <p className="text-sm text-orange-800">
+                                    <strong>Atención:</strong> Al confirmar esta acción, el sistema
+                                    registrará la inasistencia y el usuario recibirá una
+                                    penalización de bloqueo por 1 año (según la regla del backend).
+                                  </p>
+                                </div>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleMarkAbsent(appointment.id)}
+                                className="bg-orange-600 hover:bg-orange-700"
+                              >
+                                Sí, marcar ausente
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>

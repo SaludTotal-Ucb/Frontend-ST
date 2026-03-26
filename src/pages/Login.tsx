@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import axios from 'axios';
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth.ts';
 
 export const Login = () => {
@@ -16,9 +16,9 @@ export const Login = () => {
       });
       const { token, user } = response.data;
       login(token, user);
-      
+
       alert(`¡Bienvenido, ${user.name}!`);
-    } catch (error) {
+    } catch (_error) {
       alert('Error: Credenciales incorrectas. (Prueba con admin@saludtotal.bo / 123456)');
     }
   };
@@ -29,21 +29,21 @@ export const Login = () => {
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '1rem' }}>
           <label>Email:</label>
-          <input 
-            type="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
             style={{ width: '100%', display: 'block' }}
           />
         </div>
         <div style={{ marginBottom: '1rem' }}>
           <label>Contraseña:</label>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
             style={{ width: '100%', display: 'block' }}
           />
         </div>
