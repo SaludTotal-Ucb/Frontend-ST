@@ -1,6 +1,9 @@
 import { createBrowserRouter } from 'react-router';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
+import DoctorAgenda from './pages/doctor/DoctorAgenda';
+import DoctorDashboard from './pages/doctor/DoctorDashboard';
+import PatientHistoryView from './pages/doctor/PatientHistoryView';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 import RecoverPassword from './pages/RecoverPassword';
@@ -27,6 +30,11 @@ export const router = createBrowserRouter([
   {
     path: '/doctor',
     Component: DoctorLayout,
+    children: [
+      { index: true, Component: DoctorDashboard },
+      { path: 'agenda', Component: DoctorAgenda },
+      { path: 'patient-history/:id', Component: PatientHistoryView },
+    ],
   },
   {
     path: '/admin',

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
+import logo from '../../assets/ef6b1b356c372c4c3cd408e1518a34485f7432b6.png';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 
@@ -182,9 +183,11 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
               </Button>
 
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">SH</span>
-                </div>
+                <img
+                  src={logo}
+                  alt="Sistema Hospitalario"
+                  className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+                />
                 <div className="hidden sm:block">
                   <h1 className="font-bold text-gray-900 text-sm sm:text-base">
                     Sistema Hospitalario
