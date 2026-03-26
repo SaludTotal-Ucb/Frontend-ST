@@ -1,4 +1,3 @@
-import logo from 'figma:asset/ef6b1b356c372c4c3cd408e1518a34485f7432b6.png';
 import {
   Bell,
   Building2,
@@ -183,11 +182,9 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
               </Button>
 
               <div className="flex items-center gap-2">
-                <img
-                  src={logo}
-                  alt="Sistema Hospitalario"
-                  className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
-                />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">SH</span>
+                </div>
                 <div className="hidden sm:block">
                   <h1 className="font-bold text-gray-900 text-sm sm:text-base">
                     Sistema Hospitalario

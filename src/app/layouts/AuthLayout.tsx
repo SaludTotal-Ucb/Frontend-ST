@@ -1,4 +1,3 @@
-import logo from 'figma:asset/ef6b1b356c372c4c3cd408e1518a34485f7432b6.png';
 import { Outlet } from 'react-router';
 
 export default function AuthLayout() {
@@ -7,18 +6,6 @@ export default function AuthLayout() {
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
         {/* Left side - Branding (visible on desktop, top on mobile) */}
         <div className="text-center lg:text-left space-y-6">
-          <div className="w-full max-w-[120px] mx-auto lg:mx-0">
-            <img
-              src={logo}
-              alt="Salud Total Logo"
-              className="w-full h-auto"
-              style={{
-                filter:
-                  'invert(64%) sepia(85%) saturate(2527%) hue-rotate(192deg) brightness(103%) contrast(101%)',
-              }}
-            />
-          </div>
-
           <div className="space-y-3">
             <h1 className="text-2xl lg:text-3xl font-bold text-white leading-tight">
               Sistema Hospitalario
