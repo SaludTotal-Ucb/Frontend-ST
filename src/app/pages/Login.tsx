@@ -1,4 +1,4 @@
-import { Lock, Mail, UserCheck } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -47,7 +47,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -76,15 +76,14 @@ export default function Login() {
 
         toast.success(`¡Bienvenido/a ${user.name}!`);
 
-        // Redirigir automáticamente según el rol del usuario
         setTimeout(() => {
           navigate(`/${user.role}`);
         }, 500);
       } else {
-        toast.error('Credenciales incorrectas');
-        setLoading(false);
+        toast.error('Error al iniciar sesión');
       }
-    }, 800);
+      setLoading(false);
+    }, 1000);
   };
 
   return (
@@ -139,19 +138,6 @@ export default function Login() {
             >
               ¿Olvidó su contraseña?
             </Link>
-          </div>
-
-          {/* Demo credentials info */}
-          <div className="bg-blue-50 border border-blue-100 rounded-md p-3 space-y-2">
-            <div className="flex items-center gap-2 text-blue-900 font-medium text-xs">
-              <UserCheck className="w-4 h-4" />
-              <span>Credenciales de prueba:</span>
-            </div>
-            <div className="text-xs text-blue-800 space-y-0.5 pl-5">
-              <p>Paciente: paciente@hospital.com / paciente123</p>
-              <p>Médico: doctor@hospital.com / doctor123</p>
-              <p>Admin: admin@hospital.com / admin123</p>
-            </div>
           </div>
         </CardContent>
 
