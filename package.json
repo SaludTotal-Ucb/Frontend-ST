@@ -1,64 +1,64 @@
 {
-  "name": "frontend-st",
-  "version": "1.0.0",
-  "description": "",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "prepare": "husky",
-    "biome:check": "biome check .",
-    "biome:write": "biome check --write .",
-    "check": "biome check .",
-    "fix": "biome check --write .",
-    "html:check": "prettier --check \"**/*.html\" --no-error-on-unmatched-pattern",
-    "html:format": "prettier --write \"**/*.html\" --no-error-on-unmatched-pattern",
-    "styles:lint": "stylelint \"src/**/*.{css,scss,sass}\" --custom-syntax postcss-scss --allow-empty-input",
-    "styles:fix": "stylelint \"src/**/*.{css,scss,sass}\" --custom-syntax postcss-scss --fix --allow-empty-input",
-    "check:all": "npm run biome:check && npm run styles:lint && npm run html:check",
-    "fix:all": "npm run biome:write && npm run styles:fix && npm run html:format",
-    "lint": "npm run biome:check && npm run styles:lint && npm run html:check",
-    "format": "npm run biome:write && npm run styles:fix && npm run html:format",
-    "lint-staged": "lint-staged"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/SaludTotal-Ucb/Frontend-ST.git"
-  },
-  "keywords": [
-    "react",
-    "vite",
-    "tailwindcss"
-  ],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/SaludTotal-Ucb/Frontend-ST/issues"
-  },
-  "homepage": "https://github.com/SaludTotal-Ucb/Frontend-ST#readme",
-  "lint-staged": {
-    "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}": "biome check --write",
-    "**/*.html": "prettier --write --no-error-on-unmatched-pattern",
-    "**/*.{css,scss,sass}": "stylelint --fix --custom-syntax postcss-scss"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.4.1",
-    "@biomejs/biome": "^2.4.6",
-    "autoprefixer": "^10.4.21",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.3.3",
-    "postcss": "^8.5.6",
-    "postcss-scss": "^4.0.9",
-    "prettier": "^3.8.1",
-    "stylelint": "^17.4.0",
-    "stylelint-config-standard": "^40.0.0",
-    "stylelint-config-standard-scss": "^17.0.0",
-    "tailwindcss": "^3.4.17",
-    "vite": "^5.4.19"
-  }
+	"name": "frontend-st",
+	"version": "1.0.0",
+	"description": "",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "husky",
+		"biome:check": "biome check .",
+		"biome:write": "biome check --write .",
+		"check": "biome check .",
+		"fix": "biome check --write .",
+		"html:check": "prettier --check \"**/*.html\" --no-error-on-unmatched-pattern",
+		"html:format": "prettier --write \"**/*.html\" --no-error-on-unmatched-pattern",
+		"styles:lint": "stylelint \"src/**/*.{css,scss,sass}\" --custom-syntax postcss-scss --allow-empty-input",
+		"styles:fix": "stylelint \"src/**/*.{css,scss,sass}\" --custom-syntax postcss-scss --fix --allow-empty-input",
+		"check:all": "npm run biome:check && npm run styles:lint && npm run html:check",
+		"fix:all": "npm run biome:write && npm run styles:fix && npm run html:format",
+		"lint": "npm run biome:check && npm run styles:lint && npm run html:check",
+		"format": "npm run biome:write && npm run styles:fix && npm run html:format",
+		"lint-staged": "lint-staged"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/SaludTotal-Ucb/Frontend-ST.git"
+	},
+	"keywords": [
+		"react",
+		"vite",
+		"tailwindcss"
+	],
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/SaludTotal-Ucb/Frontend-ST/issues"
+	},
+	"homepage": "https://github.com/SaludTotal-Ucb/Frontend-ST#readme",
+	"lint-staged": {
+		"**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}": "biome check --write",
+		"**/*.html": "prettier --write --no-error-on-unmatched-pattern",
+		"**/*.{css,scss,sass}": "stylelint --fix --custom-syntax postcss-scss"
+	},
+	"dependencies": {
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1"
+	},
+	"devDependencies": {
+		"@vitejs/plugin-react": "^4.4.1",
+		"@biomejs/biome": "^2.4.6",
+		"autoprefixer": "^10.4.21",
+		"husky": "^9.1.7",
+		"lint-staged": "^16.3.3",
+		"postcss": "^8.5.6",
+		"postcss-scss": "^4.0.9",
+		"prettier": "^3.8.1",
+		"stylelint": "^17.4.0",
+		"stylelint-config-standard": "^40.0.0",
+		"stylelint-config-standard-scss": "^17.0.0",
+		"tailwindcss": "^3.4.17",
+		"vite": "^5.4.19"
+	}
 }
