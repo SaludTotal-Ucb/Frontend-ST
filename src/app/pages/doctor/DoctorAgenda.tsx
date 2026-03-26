@@ -24,6 +24,7 @@ import {
 } from '../../components/ui/card';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -124,6 +125,14 @@ export default function DoctorAgenda() {
 
     toast.warning('Paciente marcado como ausente', {
       description: 'Se ha registrado la inasistencia. Se aplicará la penalización.',
+    });
+  };
+
+  const handleCompleteAppointment = (id: number) => {
+    setAppointments(appointments.map((a) => (a.id === id ? { ...a, status: 'completed' } : a)));
+
+    toast.success('Consulta completada', {
+      description: 'Los detalles médicos se han guardado y la consulta ha finalizado',
     });
   };
 
@@ -388,12 +397,20 @@ export default function DoctorAgenda() {
                               </div>
                             </div>
                             <DialogFooter>
-                              <Button type="button" className="bg-gray-500 hover:bg-gray-600">
-                                Cancelar
-                              </Button>
-                              <Button type="submit" className="bg-blue-500 hover:bg-blue-600">
-                                Guardar Cambios
-                              </Button>
+                              <DialogClose asChild>
+                                <Button type="button" className="bg-gray-500 hover:bg-gray-600">
+                                  Cancelar
+                                </Button>
+                              </DialogClose>
+                              <DialogClose asChild>
+                                <Button
+                                  type="button"
+                                  onClick={() => handleCompleteAppointment(appointment.id)}
+                                  className="bg-blue-500 hover:bg-blue-600"
+                                >
+                                  Guardar y Completar
+                                </Button>
+                              </DialogClose>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
