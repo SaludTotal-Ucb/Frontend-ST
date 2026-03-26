@@ -1,4 +1,4 @@
-import { Calendar as CalendarIcon, Clock, MapPin, User, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Edit, MapPin, User, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -22,6 +22,18 @@ import {
   CardHeader,
   CardTitle,
 } from '../../components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
 
 interface Appointment {
   id: number;
@@ -249,9 +261,89 @@ export default function DoctorAgenda() {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                        <Button variant="outline" size="sm">
-                          Editar Consulta
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Edit className="w-4 h-4 mr-2" />
+                              Editar Consulta
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Editar Consulta</DialogTitle>
+                              <DialogDescription>
+                                Actualiza los detalles de la consulta con {appointment.patient}.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="patient">Paciente</Label>
+                                <Input
+                                  id="patient"
+                                  value={appointment.patient}
+                                  className="w-full"
+                                  readOnly
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="ci">CI</Label>
+                                <Input id="ci" value={appointment.ci} className="w-full" readOnly />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="date">Fecha</Label>
+                                <Input
+                                  id="date"
+                                  value={appointment.date}
+                                  className="w-full"
+                                  readOnly
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="time">Hora</Label>
+                                <Input
+                                  id="time"
+                                  value={appointment.time}
+                                  className="w-full"
+                                  readOnly
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="specialty">Especialidad</Label>
+                                <Input
+                                  id="specialty"
+                                  value={appointment.specialty}
+                                  className="w-full"
+                                  readOnly
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="clinic">Clínica</Label>
+                                <Input
+                                  id="clinic"
+                                  value={appointment.clinic}
+                                  className="w-full"
+                                  readOnly
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="notes">Notas</Label>
+                                <Textarea
+                                  id="notes"
+                                  placeholder="Añade notas sobre la consulta"
+                                  className="w-full"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button type="button" className="bg-gray-500 hover:bg-gray-600">
+                                Cancelar
+                              </Button>
+                              <Button type="submit" className="bg-blue-500 hover:bg-blue-600">
+                                Guardar Cambios
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     )}
                   </div>
