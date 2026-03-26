@@ -342,49 +342,46 @@ export default function DoctorAgenda() {
                                 <Label htmlFor="patient">Paciente</Label>
                                 <Input
                                   id="patient"
-                                  value={appointment.patient}
+                                  defaultValue={appointment.patient}
                                   className="w-full"
-                                  readOnly
                                 />
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="ci">CI</Label>
-                                <Input id="ci" value={appointment.ci} className="w-full" readOnly />
+                                <Input id="ci" defaultValue={appointment.ci} className="w-full" />
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="date">Fecha</Label>
                                 <Input
                                   id="date"
-                                  value={appointment.date}
+                                  type="date"
+                                  defaultValue={appointment.date}
                                   className="w-full"
-                                  readOnly
                                 />
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="time">Hora</Label>
                                 <Input
                                   id="time"
-                                  value={appointment.time}
+                                  type="time"
+                                  defaultValue={appointment.time}
                                   className="w-full"
-                                  readOnly
                                 />
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="specialty">Especialidad</Label>
                                 <Input
                                   id="specialty"
-                                  value={appointment.specialty}
+                                  defaultValue={appointment.specialty}
                                   className="w-full"
-                                  readOnly
                                 />
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="clinic">Clínica</Label>
                                 <Input
                                   id="clinic"
-                                  value={appointment.clinic}
+                                  defaultValue={appointment.clinic}
                                   className="w-full"
-                                  readOnly
                                 />
                               </div>
                               <div className="space-y-2">
