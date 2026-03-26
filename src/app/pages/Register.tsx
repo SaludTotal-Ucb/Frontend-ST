@@ -2,6 +2,7 @@ import { CreditCard, Lock, Mail, Phone, User } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { authService } from '../../services/api';
 import { Button } from '../components/ui/button';
 import {
   Card,
@@ -30,7 +31,7 @@ export default function Register() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
@@ -44,11 +45,30 @@ export default function Register() {
     }
 
     setLoading(true);
-    toast.success('Registro exitoso. Ahora puedes iniciar sesión');
-    setTimeout(() => {
+
+    try {
+      const response = await authService.register(
+        formData.fullName,
+        formData.email,
+        formData.password,
+      );
+
+      if (response.success) {
+        toast.success('Registro exitoso. Ahora puedes iniciar sesión');
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      } else {
+        toast.error(response.message || 'Error al registrarse');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Register error:', error);
+      toast.error(
+        'Error al conectar con el servidor. Verifica que el backend esté ejecutándose en http://localhost:3001',
+      );
       setLoading(false);
-      navigate('/');
-    }, 1500);
+    }
   };
 
   return (

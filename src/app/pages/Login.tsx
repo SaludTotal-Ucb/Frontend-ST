@@ -1,7 +1,9 @@
-import { Lock, Mail, UserCheck } from 'lucide-react';
-import { useState } from 'react';
+import { Lock, Mail } from 'lucide-react';
+import { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { AuthContext } from '../../context/AuthContext';
+import { authService } from '../../services/api';
 import { Button } from '../components/ui/button';
 import {
   Card,
@@ -14,35 +16,14 @@ import {
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 
-// Usuarios simulados para demo
-const MOCK_USERS = [
-  {
-    email: 'paciente@hospital.com',
-    password: 'paciente123',
-    role: 'patient',
-    name: 'Ana García',
-  },
-  {
-    email: 'doctor@hospital.com',
-    password: 'doctor123',
-    role: 'doctor',
-    name: 'Dr. Carlos Méndez',
-  },
-  {
-    email: 'admin@hospital.com',
-    password: 'admin123',
-    role: 'admin',
-    name: 'Admin Sistema',
-  },
-];
-
 export default function Login() {
   const navigate = useNavigate();
+  const authContext = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -52,25 +33,30 @@ export default function Login() {
 
     setLoading(true);
 
-    // Simular verificación de usuario
-    setTimeout(() => {
-      const user = MOCK_USERS.find(
-        (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
-      );
+    try {
+      const response = await authService.login(email, password);
 
-      if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
+      if (response.success && response.data) {
+        const { token, user } = response.data as any;
+        if (authContext) {
+          authContext.login(token, user);
+        }
+
         toast.success(`¡Bienvenido/a ${user.name}!`);
 
-        // Redirigir automáticamente según el rol del usuario
         setTimeout(() => {
           navigate(`/${user.role}`);
         }, 500);
       } else {
-        toast.error('Credenciales incorrectas');
-        setLoading(false);
+        toast.error(response.message || 'Error al iniciar sesión');
       }
-    }, 800);
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error(
+        'Error al conectar con el servidor. Verifica que el backend esté ejecutándose en http://localhost:3001',
+      );
+      setLoading(false);
+    }
   };
 
   return (
@@ -125,19 +111,6 @@ export default function Login() {
             >
               ¿Olvidó su contraseña?
             </Link>
-          </div>
-
-          {/* Demo credentials info */}
-          <div className="bg-blue-50 border border-blue-100 rounded-md p-3 space-y-2">
-            <div className="flex items-center gap-2 text-blue-900 font-medium text-xs">
-              <UserCheck className="w-4 h-4" />
-              <span>Credenciales de prueba:</span>
-            </div>
-            <div className="text-xs text-blue-800 space-y-0.5 pl-5">
-              <p>Paciente: paciente@hospital.com / paciente123</p>
-              <p>Médico: doctor@hospital.com / doctor123</p>
-              <p>Admin: admin@hospital.com / admin123</p>
-            </div>
           </div>
         </CardContent>
 
