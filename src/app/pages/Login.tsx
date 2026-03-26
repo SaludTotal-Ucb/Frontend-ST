@@ -2,6 +2,7 @@ import { Lock, Mail, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../components/ui/button';
 import {
   Card,
@@ -17,18 +18,21 @@ import { Label } from '../components/ui/label';
 // Usuarios simulados para demo
 const MOCK_USERS = [
   {
+    id: '1',
     email: 'paciente@hospital.com',
     password: 'paciente123',
     role: 'patient',
     name: 'Ana García',
   },
   {
+    id: '2',
     email: 'doctor@hospital.com',
     password: 'doctor123',
     role: 'doctor',
     name: 'Dr. Carlos Méndez',
   },
   {
+    id: '3',
     email: 'admin@hospital.com',
     password: 'admin123',
     role: 'admin',
@@ -38,6 +42,7 @@ const MOCK_USERS = [
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -59,7 +64,16 @@ export default function Login() {
       );
 
       if (user) {
+        // Guardar para retrocompatibilidad temporal, aunque se usa AuthContext ahora
         localStorage.setItem('currentUser', JSON.stringify(user));
+
+        // Log in via context
+        login('fake-jwt-token', {
+          id: user.id,
+          name: user.name,
+          role: user.role,
+        });
+
         toast.success(`¡Bienvenido/a ${user.name}!`);
 
         // Redirigir automáticamente según el rol del usuario

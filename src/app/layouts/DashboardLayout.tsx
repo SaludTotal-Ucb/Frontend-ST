@@ -18,6 +18,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import logo from '../../assets/ef6b1b356c372c4c3cd408e1518a34485f7432b6.png';
+import { useAuth } from '../../hooks/useAuth';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 
@@ -28,6 +29,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ role }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
   const [unreadCount] = useState(3);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -35,8 +37,8 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
   const notificationRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Obtener datos del usuario desde localStorage
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  // Obtener datos del usuario desde context o temporalmente localStorage
+  const currentUser = user || JSON.parse(localStorage.getItem('currentUser') || '{}');
   const userName = currentUser.name || 'Usuario Demo';
 
   // Close dropdowns when clicking outside
@@ -60,6 +62,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
   }, []);
 
   const handleLogout = () => {
+    logout();
     localStorage.removeItem('currentUser');
     navigate('/');
   };

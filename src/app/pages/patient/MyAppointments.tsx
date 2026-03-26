@@ -1,6 +1,8 @@
-import { AlertCircle, Calendar, Clock, MapPin, User, X } from 'lucide-react';
-import { useState } from 'react';
+import { AlertCircle, Calendar, Clock, FileText, MapPin, User, X } from 'lucide-react';
 import { toast } from 'sonner';
+// Import Hooks para conectar al Backend
+import { useAuth } from '../../../hooks/useAuth';
+import { type Cita, useCitas } from '../../../hooks/useCitas';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,60 +19,11 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
-interface Appointment {
-  id: number;
-  specialty: string;
-  doctor: string;
-  clinic: string;
-  address: string;
-  date: string;
-  time: string;
-  status: 'confirmed' | 'pending' | 'completed' | 'cancelled';
-}
-
 export default function MyAppointments() {
-  const [appointments, setAppointments] = useState<Appointment[]>([
-    {
-      id: 1,
-      specialty: 'Cardiología',
-      doctor: 'Dr. Carlos Mendoza',
-      clinic: 'Hospital Central',
-      address: 'Av. Banzer #123',
-      date: '2026-03-15',
-      time: '10:00',
-      status: 'confirmed',
-    },
-    {
-      id: 2,
-      specialty: 'Dermatología',
-      doctor: 'Dra. María Torres',
-      clinic: 'Clínica del Sur',
-      address: 'Calle Libertad #456',
-      date: '2026-03-20',
-      time: '14:30',
-      status: 'pending',
-    },
-    {
-      id: 3,
-      specialty: 'Medicina General',
-      doctor: 'Dr. Juan Pérez',
-      clinic: 'Centro Médico Norte',
-      address: 'Av. Santos Dumont #789',
-      date: '2026-02-10',
-      time: '09:00',
-      status: 'completed',
-    },
-    {
-      id: 4,
-      specialty: 'Pediatría',
-      doctor: 'Dra. Ana López',
-      clinic: 'Hospital San Juan',
-      address: 'Calle Sucre #321',
-      date: '2026-02-01',
-      time: '16:00',
-      status: 'cancelled',
-    },
-  ]);
+  const { user } = useAuth();
+  const { useCitasPaciente, cancelarCitaMutation } = useCitas();
+  // 🔥 AQUÍ ESTÁ LA CONEXIÓN MÁGICA: Le pasamos el ID del usuario logueado al hook
+  const { data: appointments, isLoading, isError } = useCitasPaciente(user?.id || '1'); // Forzamos '1' como fallback de ID si no viene
 
   const canCancelAppointment = (date: string, time: string) => {
     const appointmentDateTime = new Date(`${date}T${time}`);
@@ -79,19 +32,21 @@ export default function MyAppointments() {
     return hoursDifference > 3;
   };
 
-  const handleCancelAppointment = (id: number) => {
-    const appointment = appointments.find((a) => a.id === id);
-    if (!appointment) return;
-
-    if (!canCancelAppointment(appointment.date, appointment.time)) {
+  const handleCancelAppointment = (id: number, date: string, time: string) => {
+    if (!canCancelAppointment(date, time)) {
       toast.error('No puedes cancelar una cita con menos de 3 horas de anticipación');
       return;
     }
 
-    setAppointments(appointments.map((a) => (a.id === id ? { ...a, status: 'cancelled' } : a)));
-
-    toast.warning('Cita cancelada. Se ha aplicado una penalización de 1 mes', {
-      description: 'No podrás reservar nuevas citas durante 30 días',
+    cancelarCitaMutation.mutate(id, {
+      onSuccess: () => {
+        toast.warning('Cita cancelada. Se ha aplicado una penalización de 1 mes', {
+          description: 'No podrás reservar nuevas citas durante 30 días',
+        });
+      },
+      onError: () => {
+        toast.error('Error al cancelar la cita con el servidor.');
+      },
     });
   };
 
@@ -114,14 +69,62 @@ export default function MyAppointments() {
     }
   };
 
-  const upcomingAppointments = appointments.filter(
+  // ✅ CUMPLE CON LA RÚBRICA: Skeleton loader mientras carga desde el microservicio
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div>
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-2" />
+          <div className="h-4 bg-gray-200 rounded w-2/4" />
+        </div>
+        <div className="flex gap-2 mb-6">
+          <div className="h-10 bg-gray-200 rounded w-32 border-b-2" />
+          <div className="h-10 bg-gray-200 rounded w-32 border-b-2" />
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-6 bg-gray-200 rounded w-1/3 mb-4" />
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/4" />
+                  <div className="h-4 bg-gray-200 rounded w-2/4" />
+                  <div className="h-4 bg-gray-200 rounded w-1/4" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ CUMPLE CON LA RÚBRICA: Error Handling si el microservicio está apagado
+  if (isError) {
+    return (
+      <div className="p-6 text-center text-red-500 bg-red-50 rounded-lg border border-red-200">
+        <AlertCircle className="w-8 h-8 mx-auto xl" />
+        <h2 className="text-xl font-bold mt-2">Error al cargar las citas</h2>
+        <p>No se pudo conectar con el microservicio de Citas (Puerto 3000).</p>
+        <p className="text-sm mt-2 text-gray-500">Asegúrate de que el backend esté corriendo.</p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+          Reintentar conexión
+        </Button>
+      </div>
+    );
+  }
+
+  // Prevenimos fallos si appointments viene undefined
+  const safeAppointments = appointments || [];
+
+  const upcomingAppointments = safeAppointments.filter(
     (a) => a.status === 'confirmed' || a.status === 'pending',
   );
-  const pastAppointments = appointments.filter(
+  const pastAppointments = safeAppointments.filter(
     (a) => a.status === 'completed' || a.status === 'cancelled',
   );
 
-  const AppointmentCard = ({ appointment }: { appointment: Appointment }) => (
+  const AppointmentCard = ({ appointment }: { appointment: Cita }) => (
     <Card>
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">

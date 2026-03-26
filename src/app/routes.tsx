@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
+import { ProtectedRoute } from './layouts/ProtectedRoute';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AllAppointments from './pages/admin/AllAppointments';
 import RegisterClinic from './pages/admin/RegisterClinic';
@@ -20,9 +21,21 @@ import Register from './pages/Register';
 import Inbox from './pages/shared/Inbox';
 import Profile from './pages/shared/Profile';
 
-const PatientLayout = () => <DashboardLayout role="patient" />;
-const DoctorLayout = () => <DashboardLayout role="doctor" />;
-const AdminLayout = () => <DashboardLayout role="admin" />;
+const PatientLayout = () => (
+  <ProtectedRoute>
+    <DashboardLayout role="patient" />
+  </ProtectedRoute>
+);
+const DoctorLayout = () => (
+  <ProtectedRoute>
+    <DashboardLayout role="doctor" />
+  </ProtectedRoute>
+);
+const AdminLayout = () => (
+  <ProtectedRoute>
+    <DashboardLayout role="admin" />
+  </ProtectedRoute>
+);
 
 export const router = createBrowserRouter([
   {

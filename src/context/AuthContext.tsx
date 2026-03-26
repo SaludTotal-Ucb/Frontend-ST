@@ -16,18 +16,24 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
+  const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('user');
+    const currentUser = localStorage.getItem('currentUser'); // Para compatibilidad con el mock anterior
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        return JSON.parse(savedUser);
       } catch (error) {
         console.error('Error al parsear el usuario', error);
       }
+    } else if (currentUser) {
+      try {
+        return JSON.parse(currentUser);
+      } catch (error) {
+        console.error('Error al parsear currentUser', error);
+      }
     }
-  }, []);
+    return null;
+  });
 
   const login = (token: string, userData: User) => {
     localStorage.setItem('token', token);

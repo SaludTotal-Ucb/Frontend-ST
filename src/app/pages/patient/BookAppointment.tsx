@@ -2,6 +2,8 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { useAuth } from '../../../hooks/useAuth';
+import { useCitas } from '../../../hooks/useCitas';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import { Calendar } from '../../components/ui/calendar';
@@ -23,6 +25,9 @@ import {
 
 export default function BookAppointment() {
   const navigate = useNavigate();
+  const { agendarCitaMutation } = useCitas();
+  const { user } = useAuth();
+
   const [step, setStep] = useState(1);
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedClinic, setSelectedClinic] = useState('');
@@ -98,8 +103,40 @@ export default function BookAppointment() {
   };
 
   const handleConfirm = () => {
-    toast.success('Cita reservada exitosamente');
-    setTimeout(() => navigate('/patient/my-appointments'), 1500);
+    if (!selectedDate || !selectedTime) return;
+
+    // Asegurar formato YYYY-MM-DD
+    // usando métodos locales para evitar el desface de zona horaria de ISOString
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+
+    // La hora ya la tenemos en formato HH:mm desde los botones, pero la limpiamos por si acaso
+    const formattedTime = selectedTime.substring(0, 5);
+
+    const payload = {
+      especialidad: selectedSpecialty,
+      medico_id: selectedDoctor, // Idealmente esto debería ser el ID UUID del doctor, por ahora mandamos el nombre si el backend lo tolera
+      clinica_id: selectedClinic, // Idealmente UUID, mandamos nombre por compatibilidad
+      fecha: formattedDate,
+      hora: formattedTime,
+      paciente_id: user?.id || '1',
+      motivo: 'Consulta programada desde la web',
+    };
+
+    console.log('PAYLOAD A ENVIAR AL BACKEND:', payload);
+
+    agendarCitaMutation.mutate(payload as any, {
+      onSuccess: () => {
+        toast.success('Cita reservada exitosamente');
+        setTimeout(() => navigate('/patient/my-appointments'), 1500);
+      },
+      onError: (error) => {
+        console.error('Error al agendar:', error);
+        toast.error('Hubo un problema al reservar la cita. Revisa la consola.');
+      },
+    });
   };
 
   return (
