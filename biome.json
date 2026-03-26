@@ -1,39 +1,78 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "files": {
-    "includes": ["**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"]
+    "includes": ["src/**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}", "*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
-    "indentWidth": 2
+    "indentWidth": 2,
+    "lineWidth": 100
   },
   "javascript": {
     "formatter": {
       "quoteStyle": "single",
-      "semicolons": "always"
-    }
-  },
-  "json": {
-    "formatter": {
-      "enabled": false
-    },
-    "linter": {
-      "enabled": false
-    }
-  },
-  "css": {
-    "formatter": {
-      "enabled": false
-    },
-    "linter": {
-      "enabled": false
+      "semicolons": "always",
+      "jsxQuoteStyle": "double",
+      "trailingCommas": "all"
     }
   },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "a11y": {
+        "noAccessKey": "off",
+        "noAriaHiddenOnFocusable": "off",
+        "noAriaUnsupportedElements": "off",
+        "noAutofocus": "off",
+        "noDistractingElements": "off",
+        "noHeaderScope": "off",
+        "noInteractiveElementToNoninteractiveRole": "off",
+        "noLabelWithoutControl": "off",
+        "noNoninteractiveElementInteractions": "off",
+        "noNoninteractiveElementToInteractiveRole": "off",
+        "noNoninteractiveTabindex": "off",
+        "noPositiveTabindex": "off",
+        "noRedundantAlt": "off",
+        "noRedundantRoles": "off",
+        "noStaticElementInteractions": "off",
+        "noSvgWithoutTitle": "off",
+        "useAltText": "off",
+        "useAnchorContent": "off",
+        "useAriaActivedescendantWithTabindex": "off",
+        "useAriaPropsForRole": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "useButtonType": "off",
+        "useFocusableInteractive": "off",
+        "useGenericFontNames": "off",
+        "useHeadingContent": "off",
+        "useHtmlLang": "off",
+        "useIframeTitle": "off",
+        "useKeyWithClickEvents": "off",
+        "useKeyWithMouseEvents": "off",
+        "useMediaCaption": "off",
+        "useSemanticElements": "off",
+        "useValidAnchor": "off",
+        "useValidAriaProps": "off",
+        "useValidAriaRole": "off",
+        "useValidAriaValues": "off",
+        "useValidAutocomplete": "off",
+        "useValidLang": "off"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "off",
+        "noDocumentCookie": "off"
+      },
+      "complexity": {
+        "noUselessFragments": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      },
+      "style": {
+        "useImportType": "off"
+      }
     }
   }
 }
