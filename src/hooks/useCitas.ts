@@ -22,7 +22,7 @@ const api = axios.create({
 export const useCitas = () => {
   const queryClient = useQueryClient();
 
-  // 1. OBTENER CITAS DEL PACIENTE (Query)
+  // 1. OBTENER CITAS DEL PACIENTE (Query - Apunta al MS de Citas)
   const useCitasPaciente = (pacienteId: string) =>
     useQuery({
       queryKey: ['citas', 'paciente', pacienteId],
@@ -31,7 +31,19 @@ export const useCitas = () => {
         const { data } = await api.get<Cita[]>(`/citas/paciente/${pacienteId}`);
         return data;
       },
-      enabled: !!pacienteId, // Solo se ejecuta si hay un ID válido
+      enabled: !!pacienteId,
+    });
+
+  // 1.2 OBTENER HISTORIAL DEL PACIENTE (Query - Apunta al MS de Historial)
+  const useHistorialPaciente = (pacienteId: string) =>
+    useQuery({
+      queryKey: ['historial', 'paciente', pacienteId],
+      queryFn: async () => {
+        // Hacemos el fetch manual apuntando al puerto / servidor de historial (3002)
+        const response = await axios.get(`${API_URLS.historial}/historial/paciente/${pacienteId}`);
+        return response.data;
+      },
+      enabled: !!pacienteId,
     });
 
   // 1.5 OBTENER CITAS DEL DOCTOR (Query)
@@ -71,6 +83,7 @@ export const useCitas = () => {
 
   return {
     useCitasPaciente,
+    useHistorialPaciente,
     useCitasDoctor,
     agendarCitaMutation,
     cancelarCitaMutation,

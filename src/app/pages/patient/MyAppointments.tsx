@@ -21,9 +21,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 
 export default function MyAppointments() {
   const { user } = useAuth();
-  const { useCitasPaciente, cancelarCitaMutation } = useCitas();
+  const { useCitasPaciente, useHistorialPaciente, cancelarCitaMutation } = useCitas();
   // 🔥 AQUÍ ESTÁ LA CONEXIÓN MÁGICA: Le pasamos el ID del usuario logueado al hook
-  const { data: appointments, isLoading, isError } = useCitasPaciente(user?.id || '1'); // Forzamos '1' como fallback de ID si no viene
+  const { data: appointments, isLoading, isError } = useCitasPaciente(user?.id || '1');
+  const { data: historial, isLoading: isLoadingHistorial } = useHistorialPaciente(user?.id || '1'); // Forzamos '1' como fallback de ID si no viene
 
   const canCancelAppointment = (date: string, time: string) => {
     const appointmentDateTime = new Date(`${date}T${time}`);
@@ -120,9 +121,11 @@ export default function MyAppointments() {
   const upcomingAppointments = safeAppointments.filter(
     (a) => a.status === 'confirmed' || a.status === 'pending',
   );
-  const pastAppointments = safeAppointments.filter(
-    (a) => a.status === 'completed' || a.status === 'cancelled',
-  );
+  // Combinamos las citas pasadas con el historial que viene del microservicio
+  const pastAppointments = [
+    ...safeAppointments.filter((a) => a.status === 'completed' || a.status === 'cancelled'),
+    ...(historial || []),
+  ];
 
   const AppointmentCard = ({ appointment }: { appointment: Cita }) => (
     <Card>

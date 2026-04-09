@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -117,8 +118,8 @@ export default function BookAppointment() {
 
     const payload = {
       especialidad: selectedSpecialty,
-      medico_id: selectedDoctor, // Idealmente esto debería ser el ID UUID del doctor, por ahora mandamos el nombre si el backend lo tolera
-      clinica_id: selectedClinic, // Idealmente UUID, mandamos nombre por compatibilidad
+      medico_id: selectedDoctor,
+      clinica_id: selectedClinic,
       fecha: formattedDate,
       hora: formattedTime,
       paciente_id: user?.id || '1',
@@ -128,13 +129,40 @@ export default function BookAppointment() {
     console.log('PAYLOAD A ENVIAR AL BACKEND:', payload);
 
     agendarCitaMutation.mutate(payload as any, {
-      onSuccess: () => {
+      onSuccess: async () => {
+        // Tambien guardamos en el historial del puerto 3002
+        try {
+          const token = localStorage.getItem('token');
+          const payloadHistorial = {
+            paciente_id: String(user?.id || '1'),
+            diagnostico: 'Cita Pendiente',
+            severidad: 'BAJA',
+            medico_encargado: selectedDoctor,
+            descripcion: 'Motivo: Consulta programada desde la web',
+            proxima_cita: formattedDate,
+          };
+
+          await axios.post('http://localhost:3002/api/historial', payloadHistorial, {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          });
+        } catch (err) {
+          console.error('Error copiando al historial:', err);
+        }
+
         toast.success('Cita reservada exitosamente');
         setTimeout(() => navigate('/patient/my-appointments'), 1500);
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error('Error al agendar:', error);
-        toast.error('Hubo un problema al reservar la cita. Revisa la consola.');
+        if (error.response) {
+          console.error('DATA ERROR BACKEND:', error.response.data);
+          toast.error(
+            `Error Backend: ${JSON.stringify(error.response.data?.message || error.response.data)}`,
+          );
+        } else {
+          toast.error('Hubo un problema al reservar la cita. Revisa la consola.');
+        }
       },
     });
   };

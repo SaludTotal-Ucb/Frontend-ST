@@ -15,31 +15,6 @@ import {
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 
-// Usuarios simulados para demo
-const MOCK_USERS = [
-  {
-    id: '1',
-    email: 'paciente@hospital.com',
-    password: 'paciente123',
-    role: 'patient',
-    name: 'Ana García',
-  },
-  {
-    id: '2',
-    email: 'doctor@hospital.com',
-    password: 'doctor123',
-    role: 'doctor',
-    name: 'Dr. Carlos Méndez',
-  },
-  {
-    id: '3',
-    email: 'admin@hospital.com',
-    password: 'admin123',
-    role: 'admin',
-    name: 'Admin Sistema',
-  },
-];
-
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -57,33 +32,48 @@ export default function Login() {
 
     setLoading(true);
 
-    // Simular verificación de usuario
-    setTimeout(() => {
-      const user = MOCK_USERS.find(
-        (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
-      );
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      if (user) {
-        // Guardar para retrocompatibilidad temporal, aunque se usa AuthContext ahora
-        localStorage.setItem('currentUser', JSON.stringify(user));
+      const data = await response.json();
 
-        // Log in via context
-        login('fake-jwt-token', {
-          id: user.id,
-          name: user.name,
-          role: user.role,
-        });
-
-        toast.success(`¡Bienvenido/a ${user.name}!`);
-
-        setTimeout(() => {
-          navigate(`/${user.role}`);
-        }, 500);
-      } else {
-        toast.error('Error al iniciar sesión');
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Credenciales incorrectas');
       }
+
+      const token = data.token || data.session?.access_token || 'real-jwt-token';
+      const user = data.user || data.data?.user || data;
+
+      const userRole = user.role || user.rol || 'patient';
+      const userName = user.name || user.nombre || user.fullName || email.split('@')[0];
+      const userId = user.id || user.usuario_id || user.uid;
+
+      const userToSave = {
+        id: userId,
+        name: userName,
+        role: userRole,
+        email: user.email || email,
+      };
+
+      localStorage.setItem('currentUser', JSON.stringify(userToSave));
+      login(token, userToSave);
+
+      toast.success('¡Bienvenido/a ' + userName + '!');
+
+      setTimeout(() => {
+        navigate('/' + userRole);
+      }, 500);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.message || 'Error al iniciar sesión. Revisa tus credenciales.');
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (

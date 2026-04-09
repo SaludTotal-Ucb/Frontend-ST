@@ -30,7 +30,7 @@ export default function Register() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // 1. Validar Nombre Completo (solo letras y espacios, mín 3 caracteres)
@@ -78,11 +78,39 @@ export default function Register() {
     }
 
     setLoading(true);
-    toast.success('Registro exitoso. Ahora puedes iniciar sesión');
-    setTimeout(() => {
+
+    try {
+      // Usando el endpoint de Auth desde nuestro servidor (puerto 3001)
+      const response = await fetch('http://localhost:3001/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          ci: formData.ci, // Enviando CI por si el backend lo requiere
+          phone: formData.phone, // Enviando teléfono por si el backend lo requiere
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al registrar el usuario en el backend');
+      }
+
+      toast.success('Registro exitoso. Ahora puedes iniciar sesión');
+      setTimeout(() => {
+        setLoading(false);
+        navigate('/');
+      }, 1500);
+    } catch (error: any) {
+      console.error('Error al registrar:', error);
+      toast.error(error.message || 'Error de conexión con el backend de Auth');
       setLoading(false);
-      navigate('/');
-    }, 1500);
+    }
   };
 
   return (

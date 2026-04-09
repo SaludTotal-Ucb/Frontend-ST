@@ -1,3 +1,4 @@
+import axios from 'axios';
 import {
   AlertCircle,
   ArrowLeft,
@@ -12,6 +13,7 @@ import {
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
+import { useAuth } from '../../../hooks/useAuth';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -25,9 +27,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 export default function PatientHistoryView() {
-  const { id: _id } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [isConsultationActive, setIsConsultationActive] = useState(true);
+  const [motivo, setMotivo] = useState('');
+  const [diagnostico, setDiagnostico] = useState('');
+  const [tratamiento, setTratamiento] = useState('');
+  const [severidad, setSeveridad] = useState('MEDIA');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Simulated JWT access control
   const hasActiveAccess = isConsultationActive;
@@ -39,6 +48,42 @@ export default function PatientHistoryView() {
     setTimeout(() => {
       navigate('/doctor');
     }, 1500);
+  };
+
+  const handleGuardarConsulta = async () => {
+    if (!diagnostico) {
+      toast.error('El diagnóstico es obligatorio mínimo 3 letras');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const token = localStorage.getItem('token');
+
+      const payloadHistorial = {
+        paciente_id: String(id), // ID del paciente mandado en la ruta
+        diagnostico: diagnostico,
+        severidad: severidad,
+        medico_encargado: user?.name || 'Dr. Médico',
+        descripcion: motivo,
+        tratamiento: tratamiento,
+      };
+
+      await axios.post('http://localhost:3002/api/historial', payloadHistorial, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true,
+      });
+
+      toast.success('Consulta y diagnóstico guardados en el historial del paciente');
+      handleFinishConsultation();
+    } catch (error) {
+      console.error(error);
+      toast.error('Ocurrió un error al guardar el historial en el servidor');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const patientInfo = {
@@ -300,17 +345,37 @@ export default function PatientHistoryView() {
                       <textarea
                         className="w-full min-h-[80px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                         placeholder="Describe el motivo de la consulta..."
+                        value={motivo}
+                        onChange={(e) => setMotivo(e.target.value)}
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Diagnóstico
+                        Diagnóstico <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         className="w-full min-h-[80px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                         placeholder="Ingresa el diagnóstico..."
+                        value={diagnostico}
+                        onChange={(e) => setDiagnostico(e.target.value)}
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Severidad
+                      </label>
+                      <select
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                        value={severidad}
+                        onChange={(e) => setSeveridad(e.target.value)}
+                      >
+                        <option value="BAJA">Baja</option>
+                        <option value="MEDIA">Media</option>
+                        <option value="ALTA">Alta</option>
+                        <option value="CRITICA">Crítica</option>
+                      </select>
                     </div>
 
                     <div>
@@ -320,12 +385,20 @@ export default function PatientHistoryView() {
                       <textarea
                         className="w-full min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                         placeholder="Tratamiento prescrito, indicaciones, recomendaciones..."
+                        value={tratamiento}
+                        onChange={(e) => setTratamiento(e.target.value)}
                       />
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <Button className="flex-1">Guardar Consulta</Button>
-                      <Button variant="outline" className="flex-1">
+                      <Button
+                        className="flex-1"
+                        onClick={handleGuardarConsulta}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? 'Guardando...' : 'Guardar Consulta'}
+                      </Button>
+                      <Button variant="outline" className="flex-1" disabled={isSaving}>
                         Guardar Borrador
                       </Button>
                     </div>
