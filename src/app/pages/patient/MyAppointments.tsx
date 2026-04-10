@@ -26,24 +26,26 @@ export default function MyAppointments() {
   // Le pasamos el ID real del usuario logueado al hook (sin fallback hardcodeado)
   const { data: appointments, isLoading, isError } = useCitasPaciente(patientId);
 
-  const canCancelAppointment = (date: string, time: string) => {
+  const isLateCancellation = (date: string, time: string) => {
     const appointmentDateTime = new Date(`${date}T${time}`);
     const now = new Date();
     const hoursDifference = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-    return hoursDifference > 3;
+    return hoursDifference < 3 && hoursDifference > 0;
   };
 
   const handleCancelAppointment = (id: string, date: string, time: string) => {
-    if (!canCancelAppointment(date, time)) {
-      toast.error('No puedes cancelar una cita con menos de 3 horas de anticipación');
-      return;
-    }
+    const lateCancellation = isLateCancellation(date, time);
 
     cancelarCitaMutation.mutate(id, {
       onSuccess: () => {
-        toast.warning('Cita cancelada. Se ha aplicado una penalización de 1 mes', {
-          description: 'No podrás reservar nuevas citas durante 30 días',
-        });
+        if (lateCancellation) {
+          toast.warning('Cita cancelada. Se aplico una penalizacion de 1 mes.', {
+            description: 'No podras reservar nuevas citas durante 30 dias.',
+          });
+          return;
+        }
+
+        toast.success('Cita cancelada correctamente.');
       },
       onError: () => {
         toast.error('Error al cancelar la cita con el servidor.');
@@ -135,7 +137,7 @@ export default function MyAppointments() {
   );
   // Solo citas en esta vista para evitar mezclar estructuras distintas con historial
   const pastAppointments = safeAppointments.filter(
-    (a) => a.status === 'completed' || a.status === 'cancelled',
+    (a) => a.status === 'completed' || a.status === 'cancelled' || a.status === 'absent',
   );
 
   const AppointmentCard = ({ appointment }: { appointment: Cita }) => (
@@ -172,50 +174,44 @@ export default function MyAppointments() {
 
         {(appointment.status === 'confirmed' || appointment.status === 'pending') && (
           <div className="flex gap-2 mt-4">
-            {canCancelAppointment(appointment.date, appointment.time) ? (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                    <X className="w-4 h-4 mr-2" />
-                    Cancelar Cita
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                    <AlertDialogDescription className="space-y-2">
-                      <p>
-                        Al cancelar esta cita recibirás una penalización de 1 mes sin poder reservar
-                        nuevas citas.
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                  <X className="w-4 h-4 mr-2" />
+                  Cancelar Cita
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estas seguro?</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <p>
+                      {isLateCancellation(appointment.date, appointment.time)
+                        ? 'La cancelacion se realizara con menos de 3 horas de anticipacion y generara una penalizacion de 1 mes.'
+                        : 'La cita sera cancelada sin penalizacion porque aun faltan mas de 3 horas.'}
+                    </p>
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-md border border-amber-200">
+                      <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+                      <p className="text-sm text-amber-800">
+                        <strong>Advertencia:</strong> Si acumulas 3 ausencias consecutivas, tu
+                        cuenta sera bloqueada por 1 ano.
                       </p>
-                      <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-md border border-amber-200">
-                        <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
-                        <p className="text-sm text-amber-800">
-                          <strong>Advertencia:</strong> Si acumulas 3 ausencias consecutivas, tu
-                          cuenta será bloqueada por 1 año.
-                        </p>
-                      </div>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>No, mantener cita</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() =>
-                        handleCancelAppointment(appointment.id, appointment.date, appointment.time)
-                      }
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Sí, cancelar
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : (
-              <Button variant="outline" size="sm" disabled className="text-gray-400">
-                <X className="w-4 h-4 mr-2" />
-                No se puede cancelar
-              </Button>
-            )}
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>No, mantener cita</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() =>
+                      handleCancelAppointment(appointment.id, appointment.date, appointment.time)
+                    }
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Si, cancelar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
       </CardContent>

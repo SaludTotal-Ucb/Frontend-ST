@@ -69,12 +69,14 @@ export const useCitas = () => {
     });
 
   // 1.5 obtener citas del doctor
-  const useCitasDoctor = (doctorId: string) =>
+  const useCitasDoctor = (doctorId: string, fecha?: string) =>
     useQuery({
-      queryKey: ['citas', 'doctor', doctorId],
+      queryKey: ['citas', 'doctor', doctorId, fecha || 'all'],
       queryFn: async () => {
-        // Llama a GET /api/citas/medico/:id
-        const { data } = await api.get<CitaApi[]>(`/citas/medico/${doctorId}`);
+        // Llama a GET /api/citas/medico/:id?fecha=YYYY-MM-DD
+        const { data } = await api.get<CitaApi[]>(`/citas/medico/${encodeURIComponent(doctorId)}`, {
+          params: fecha ? { fecha } : undefined,
+        });
         return (data || []).map(mapCitaApiToUi);
       },
       enabled: !!doctorId,

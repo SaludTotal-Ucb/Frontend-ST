@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { useAuth } from '../../../hooks/useAuth';
@@ -26,7 +26,7 @@ import {
 
 export default function BookAppointment() {
   const navigate = useNavigate();
-  const { agendarCitaMutation } = useCitas();
+  const { agendarCitaMutation, useCitasDoctor } = useCitas();
   const { user } = useAuth();
 
   const [step, setStep] = useState(1);
@@ -78,6 +78,34 @@ export default function BookAppointment() {
     '17:00',
   ];
 
+  const selectedDateString = useMemo(() => {
+    if (!selectedDate) return '';
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, [selectedDate]);
+
+  const { data: doctorAppointments, isLoading: isLoadingSlots } = useCitasDoctor(
+    selectedDoctor,
+    selectedDateString,
+  );
+
+  const occupiedTimes = useMemo(() => {
+    const appointments = doctorAppointments || [];
+    return new Set(
+      appointments
+        .filter((appointment) => appointment.status !== 'cancelled')
+        .map((appointment) => appointment.time),
+    );
+  }, [doctorAppointments]);
+
+  useEffect(() => {
+    if (selectedTime && occupiedTimes.has(selectedTime)) {
+      setSelectedTime('');
+    }
+  }, [occupiedTimes, selectedTime]);
+
   const handleNext = () => {
     if (step === 1 && !selectedSpecialty) {
       toast.error('Por favor selecciona una especialidad');
@@ -105,13 +133,12 @@ export default function BookAppointment() {
 
   const handleConfirm = () => {
     if (!selectedDate || !selectedTime) return;
+    if (!user?.id) {
+      toast.error('No se pudo identificar al paciente logueado. Vuelve a iniciar sesion.');
+      return;
+    }
 
-    // Asegurar formato YYYY-MM-DD
-    // usando métodos locales para evitar el desface de zona horaria de ISOString
-    const year = selectedDate.getFullYear();
-    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-    const day = String(selectedDate.getDate()).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${day}`;
+    const formattedDate = selectedDateString;
 
     // La hora ya la tenemos en formato HH:mm desde los botones, pero la limpiamos por si acaso
     const formattedTime = selectedTime.substring(0, 5);
@@ -122,7 +149,7 @@ export default function BookAppointment() {
       clinica_id: selectedClinic,
       fecha: formattedDate,
       hora: formattedTime,
-      paciente_id: user?.id || '1',
+      paciente_id: user.id,
       motivo: 'Consulta programada desde la web',
     };
 
@@ -134,7 +161,7 @@ export default function BookAppointment() {
         try {
           const token = localStorage.getItem('token');
           const payloadHistorial = {
-            paciente_id: String(user?.id || '1'),
+            paciente_id: String(user.id),
             diagnostico: 'Cita Pendiente',
             severidad: 'BAJA',
             medico_encargado: selectedDoctor,
@@ -262,7 +289,13 @@ export default function BookAppointment() {
 
               <div className="space-y-2">
                 <Label htmlFor="doctor">Médico</Label>
-                <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
+                <Select
+                  value={selectedDoctor}
+                  onValueChange={(doctor) => {
+                    setSelectedDoctor(doctor);
+                    setSelectedTime('');
+                  }}
+                >
                   <SelectTrigger id="doctor">
                     <SelectValue placeholder="Selecciona un médico" />
                   </SelectTrigger>
@@ -287,7 +320,10 @@ export default function BookAppointment() {
                   <Calendar
                     mode="single"
                     selected={selectedDate}
-                    onSelect={setSelectedDate}
+                    onSelect={(date) => {
+                      setSelectedDate(date);
+                      setSelectedTime('');
+                    }}
                     disabled={(date) => date < new Date() || date < new Date('1900-01-01')}
                     className="rounded-md border"
                   />
@@ -296,20 +332,33 @@ export default function BookAppointment() {
 
               <div className="space-y-2">
                 <Label>Hora Disponible</Label>
+                {selectedDoctor && selectedDateString && (
+                  <p className="text-xs text-gray-500">
+                    {isLoadingSlots
+                      ? 'Cargando cupos ocupados...'
+                      : 'Los horarios marcados como ocupados ya tienen una cita registrada.'}
+                  </p>
+                )}
                 <div className="grid grid-cols-5 gap-2">
-                  {availableTimes.map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className={`py-2 px-3 rounded-md border text-sm transition-all ${
-                        selectedTime === time
-                          ? 'border-blue-600 bg-blue-600 text-white'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  ))}
+                  {availableTimes.map((time) => {
+                    const isOccupied = occupiedTimes.has(time);
+                    return (
+                      <button
+                        key={time}
+                        onClick={() => setSelectedTime(time)}
+                        disabled={isOccupied}
+                        className={`py-2 px-3 rounded-md border text-sm transition-all ${
+                          isOccupied
+                            ? 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed'
+                            : selectedTime === time
+                              ? 'border-blue-600 bg-blue-600 text-white'
+                              : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        {isOccupied ? `${time} ocupado` : time}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
