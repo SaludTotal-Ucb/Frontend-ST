@@ -64,10 +64,10 @@ export default function Register() {
     }
 
     // 5. Validar Contraseñas
-    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\W_]).{6,}$/;
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\W_]).{8,}$/;
     if (!passwordRegex.test(formData.password)) {
       toast.error(
-        'La contraseña debe tener al menos 6 caracteres, incluir letras, números y un carácter especial',
+        'La contraseña debe tener al menos 8 caracteres, incluir letras, números y un carácter especial',
       );
       return;
     }

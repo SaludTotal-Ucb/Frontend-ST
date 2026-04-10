@@ -21,10 +21,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 
 export default function MyAppointments() {
   const { user } = useAuth();
-  const { useCitasPaciente, useHistorialPaciente, cancelarCitaMutation } = useCitas();
-  // 🔥 AQUÍ ESTÁ LA CONEXIÓN MÁGICA: Le pasamos el ID del usuario logueado al hook
-  const { data: appointments, isLoading, isError } = useCitasPaciente(user?.id || '1');
-  const { data: historial, isLoading: isLoadingHistorial } = useHistorialPaciente(user?.id || '1'); // Forzamos '1' como fallback de ID si no viene
+  const { useCitasPaciente, cancelarCitaMutation } = useCitas();
+  const patientId = user?.id ?? '';
+  // Le pasamos el ID real del usuario logueado al hook (sin fallback hardcodeado)
+  const { data: appointments, isLoading, isError } = useCitasPaciente(patientId);
 
   const canCancelAppointment = (date: string, time: string) => {
     const appointmentDateTime = new Date(`${date}T${time}`);
@@ -33,7 +33,7 @@ export default function MyAppointments() {
     return hoursDifference > 3;
   };
 
-  const handleCancelAppointment = (id: number, date: string, time: string) => {
+  const handleCancelAppointment = (id: string, date: string, time: string) => {
     if (!canCancelAppointment(date, time)) {
       toast.error('No puedes cancelar una cita con menos de 3 horas de anticipación');
       return;
@@ -68,6 +68,16 @@ export default function MyAppointments() {
       default:
         return null;
     }
+  };
+
+  const formatLocalDate = (isoDate: string) => {
+    const [year, month, day] = isoDate.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day);
+    return localDate.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
   };
 
   // ✅ CUMPLE CON LA RÚBRICA: Skeleton loader mientras carga desde el microservicio
@@ -121,11 +131,10 @@ export default function MyAppointments() {
   const upcomingAppointments = safeAppointments.filter(
     (a) => a.status === 'confirmed' || a.status === 'pending',
   );
-  // Combinamos las citas pasadas con el historial que viene del microservicio
-  const pastAppointments = [
-    ...safeAppointments.filter((a) => a.status === 'completed' || a.status === 'cancelled'),
-    ...(historial || []),
-  ];
+  // Solo citas en esta vista para evitar mezclar estructuras distintas con historial
+  const pastAppointments = safeAppointments.filter(
+    (a) => a.status === 'completed' || a.status === 'cancelled',
+  );
 
   const AppointmentCard = ({ appointment }: { appointment: Cita }) => (
     <Card>
@@ -149,13 +158,7 @@ export default function MyAppointments() {
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span>
-                  {new Date(appointment.date).toLocaleDateString('es-ES', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </span>
+                <span>{formatLocalDate(appointment.date)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
@@ -195,7 +198,9 @@ export default function MyAppointments() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>No, mantener cita</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={() => handleCancelAppointment(appointment.id)}
+                      onClick={() =>
+                        handleCancelAppointment(appointment.id, appointment.date, appointment.time)
+                      }
                       className="bg-red-600 hover:bg-red-700"
                     >
                       Sí, cancelar

@@ -2,19 +2,41 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { API_URLS } from '../config/api-config';
 
-// Interfaces for our Citas (Appointments)
+// interfaces cita
 export interface Cita {
-  id: number;
+  id: string;
   specialty: string;
   doctor: string;
   clinic: string;
   address: string;
   date: string;
   time: string;
-  status: 'confirmed' | 'pending' | 'completed' | 'cancelled';
+  status: 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'absent';
 }
 
-// Configuración inicial de Axios conectándolo al Microservicio de Citas
+type CitaApi = {
+  id: string;
+  paciente_id: string;
+  medico_id: string;
+  clinica_id: string;
+  especialidad: string;
+  fecha: string;
+  hora: string;
+  estado: 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'absent';
+};
+//mapeo para la api(back citas)
+const mapCitaApiToUi = (cita: CitaApi): Cita => ({
+  id: cita.id,
+  specialty: cita.especialidad,
+  doctor: cita.medico_id,
+  clinic: cita.clinica_id,
+  address: '',
+  date: cita.fecha,
+  time: cita.hora,
+  status: cita.estado,
+});
+
+// axios
 const api = axios.create({
   baseURL: API_URLS.citas,
 });
@@ -22,19 +44,19 @@ const api = axios.create({
 export const useCitas = () => {
   const queryClient = useQueryClient();
 
-  // 1. OBTENER CITAS DEL PACIENTE (Query - Apunta al MS de Citas)
+  //citas paciente
   const useCitasPaciente = (pacienteId: string) =>
     useQuery({
       queryKey: ['citas', 'paciente', pacienteId],
       queryFn: async () => {
         // Llama a GET /api/citas/paciente/:id
-        const { data } = await api.get<Cita[]>(`/citas/paciente/${pacienteId}`);
-        return data;
+        const { data } = await api.get<CitaApi[]>(`/citas/paciente/${pacienteId}`);
+        return (data || []).map(mapCitaApiToUi);
       },
       enabled: !!pacienteId,
     });
 
-  // 1.2 OBTENER HISTORIAL DEL PACIENTE (Query - Apunta al MS de Historial)
+  // historial paciente
   const useHistorialPaciente = (pacienteId: string) =>
     useQuery({
       queryKey: ['historial', 'paciente', pacienteId],
@@ -46,34 +68,35 @@ export const useCitas = () => {
       enabled: !!pacienteId,
     });
 
-  // 1.5 OBTENER CITAS DEL DOCTOR (Query)
+  // 1.5 obtener citas del doctor
   const useCitasDoctor = (doctorId: string) =>
     useQuery({
       queryKey: ['citas', 'doctor', doctorId],
       queryFn: async () => {
         // Llama a GET /api/citas/medico/:id
-        const { data } = await api.get<Cita[]>(`/citas/medico/${doctorId}`);
-        return data;
+        const { data } = await api.get<CitaApi[]>(`/citas/medico/${doctorId}`);
+        return (data || []).map(mapCitaApiToUi);
       },
       enabled: !!doctorId,
     });
 
-  // 2. AGENDAR UNA CITA NUEVA (Mutation con Invalidación de Caché)
+  // agendar cita
   const agendarCitaMutation = useMutation({
     mutationFn: async (nuevaCita: Omit<Cita, 'id' | 'status'>) => {
       const { data } = await api.post<Cita>('/citas', nuevaCita);
       return data;
     },
     onSuccess: () => {
-      // 🎉 Esto cumple tu rúbrica: Invalidar caché general de citas forzando re-fetch
       queryClient.invalidateQueries({ queryKey: ['citas'] });
     },
   });
 
-  // 3. CANCELAR CITA (Mutation)
+  // cancelar cita
   const cancelarCitaMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const { data } = await api.patch(`/citas/${id}/cancelar`);
+    mutationFn: async (id: string) => {
+      const { data } = await api.patch(`/citas/${id}/estado`, {
+        estado: 'cancelled',
+      });
       return data;
     },
     onSuccess: () => {
