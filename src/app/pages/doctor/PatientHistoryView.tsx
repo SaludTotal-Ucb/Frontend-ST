@@ -13,6 +13,7 @@ import {
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
+import { API_URLS } from '../../../config/api-config';
 import { useAuth } from '../../../hooks/useAuth';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Badge } from '../../components/ui/badge';
@@ -69,7 +70,7 @@ export default function PatientHistoryView() {
         tratamiento: tratamiento,
       };
 
-      await axios.post('http://localhost:3002/api/historial', payloadHistorial, {
+      await axios.post(`${API_URLS.historial}/historial`, payloadHistorial, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

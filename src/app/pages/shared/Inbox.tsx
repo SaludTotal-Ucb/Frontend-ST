@@ -1,82 +1,153 @@
 import { AlertCircle, Bell, Calendar, CheckCircle, Info, X } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useLocation } from 'react-router';
+import { useAuth } from '../../../hooks/useAuth';
+import { type Cita, useCitas } from '../../../hooks/useCitas';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 interface Message {
-  id: number;
+  id: string;
   type: 'reminder' | 'cancellation' | 'confirmation' | 'warning' | 'info';
   title: string;
   message: string;
   date: string;
-  read: boolean;
 }
 
+type HistorialApi = {
+  id: string;
+  diagnostico?: string;
+  descripcion?: string;
+  created_at?: string;
+  fecha?: string;
+};
+
 export default function Inbox() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
+  const location = useLocation();
+  const { user } = useAuth();
+  const { useCitasPaciente, useCitasDoctor, useHistorialPaciente } = useCitas();
+
+  const currentUser = user || JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const rawRole = String(currentUser.role || '').toLowerCase();
+
+  const normalizeRole = (value: string): 'patient' | 'doctor' | 'admin' | '' => {
+    if (value === 'patient' || value === 'paciente') return 'patient';
+    if (value === 'doctor' || value === 'medico' || value === 'médico') return 'doctor';
+    if (value === 'admin' || value === 'administrador') return 'admin';
+    return '';
+  };
+
+  const roleFromPath: 'patient' | 'doctor' | 'admin' | '' = location.pathname.startsWith('/patient')
+    ? 'patient'
+    : location.pathname.startsWith('/doctor')
+      ? 'doctor'
+      : location.pathname.startsWith('/admin')
+        ? 'admin'
+        : '';
+
+  const role = roleFromPath || normalizeRole(rawRole) || 'patient';
+
+  const patientId = role === 'patient' ? String(currentUser.id || '') : '';
+  const doctorId = role === 'doctor' ? String(currentUser.id || '') : '';
+
+  const { data: patientAppointments } = useCitasPaciente(patientId);
+  const { data: doctorAppointments } = useCitasDoctor(doctorId);
+  const { data: historial } = useHistorialPaciente(patientId);
+
+  const [readMessageIds, setReadMessageIds] = useState<string[]>([]);
+
+  const formatDateLabel = (date: string) => {
+    if (!date) return 'fecha no disponible';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const [year, month, day] = date.split('-').map(Number);
+      return new Date(year, month - 1, day).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+    }
+    return new Date(date).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const appointmentsForInbox: Cita[] =
+    role === 'doctor' ? doctorAppointments || [] : patientAppointments || [];
+
+  const appointmentMessages: Message[] = appointmentsForInbox.map((appointment) => {
+    const dateIso = `${appointment.date}T${appointment.time}:00`;
+
+    if (appointment.status === 'cancelled') {
+      return {
+        id: `cita-${appointment.id}`,
+        type: 'cancellation',
+        title: 'Cita Cancelada',
+        message: `La cita de ${appointment.specialty} del ${formatDateLabel(appointment.date)} a las ${appointment.time} fue cancelada.`,
+        date: dateIso,
+      };
+    }
+
+    if (appointment.status === 'confirmed') {
+      return {
+        id: `cita-${appointment.id}`,
+        type: 'confirmation',
+        title: 'Cita Confirmada',
+        message: `Tienes una cita confirmada de ${appointment.specialty} el ${formatDateLabel(appointment.date)} a las ${appointment.time}.`,
+        date: dateIso,
+      };
+    }
+
+    if (appointment.status === 'absent') {
+      return {
+        id: `cita-${appointment.id}`,
+        type: 'warning',
+        title: 'Registro de Ausencia',
+        message: `La cita de ${appointment.specialty} del ${formatDateLabel(appointment.date)} fue marcada como ausente.`,
+        date: dateIso,
+      };
+    }
+
+    return {
+      id: `cita-${appointment.id}`,
       type: 'reminder',
       title: 'Recordatorio de Cita',
-      message:
-        'Tu cita con Dr. Carlos Mendoza (Cardiología) es mañana 15/03/2026 a las 10:00 hrs en Hospital Central.',
-      date: '2026-03-14T14:00:00',
-      read: false,
-    },
-    {
-      id: 2,
-      type: 'confirmation',
-      title: 'Cita Confirmada',
-      message:
-        'Tu cita con Dra. María Torres (Dermatología) ha sido confirmada para el 20/03/2026 a las 14:30 hrs.',
-      date: '2026-03-13T09:30:00',
-      read: false,
-    },
-    {
-      id: 3,
-      type: 'warning',
-      title: 'Actualiza tu Información',
-      message:
-        'Por favor actualiza tu información de contacto para recibir notificaciones importantes.',
-      date: '2026-03-11T10:00:00',
-      read: false,
-    },
-    {
-      id: 4,
-      type: 'reminder',
-      title: 'Recordatorio de Cita - 24h',
-      message: 'Recordatorio: Tu cita con Dr. Carlos Mendoza es en 24 horas. No olvides asistir.',
-      date: '2026-03-10T10:00:00',
-      read: true,
-    },
-    {
-      id: 5,
-      type: 'cancellation',
-      title: 'Cita Cancelada por la Clínica',
-      message:
-        'La clínica ha cancelado tu cita del 05/03/2026. No se aplicó penalización. Por favor, reagenda cuando gustes.',
-      date: '2026-03-05T15:00:00',
-      read: true,
-    },
-    {
-      id: 6,
-      type: 'info',
-      title: 'Bienvenido al Sistema',
-      message:
-        'Tu cuenta ha sido creada exitosamente. Ahora puedes reservar citas médicas y acceder a tu historial.',
-      date: '2026-02-01T08:00:00',
-      read: true,
-    },
-  ]);
+      message: `Tienes una cita de ${appointment.specialty} el ${formatDateLabel(appointment.date)} a las ${appointment.time}.`,
+      date: dateIso,
+    };
+  });
 
-  const handleMarkAsRead = (id: number) => {
-    setMessages(messages.map((m) => (m.id === id ? { ...m, read: true } : m)));
+  const historialMessages: Message[] =
+    role === 'patient'
+      ? ((historial || []) as HistorialApi[]).map((entry) => ({
+          id: `hist-${entry.id}`,
+          type: 'info',
+          title: 'Actualizacion de Historial',
+          message: `Se registro un nuevo diagnostico: ${entry.diagnostico || 'Sin diagnostico'}.`,
+          date: entry.created_at || entry.fecha || new Date().toISOString(),
+        }))
+      : [];
+
+  const messages = useMemo(
+    () =>
+      [...appointmentMessages, ...historialMessages].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      ),
+    [appointmentMessages, historialMessages],
+  );
+
+  const isRead = (id: string) => readMessageIds.includes(id);
+
+  const handleMarkAsRead = (id: string) => {
+    if (isRead(id)) return;
+    setReadMessageIds((prev) => [...prev, id]);
   };
 
   const handleMarkAllAsRead = () => {
-    setMessages(messages.map((m) => ({ ...m, read: true })));
+    setReadMessageIds(messages.map((m) => m.id));
   };
 
   const getMessageIcon = (type: string) => {
@@ -133,29 +204,33 @@ export default function Inbox() {
     }
   };
 
-  const unreadMessages = messages.filter((m) => !m.read);
-  const readMessages = messages.filter((m) => m.read);
+  const unreadMessages = messages.filter((m) => !isRead(m.id));
+  const readMessages = messages.filter((m) => isRead(m.id));
 
   const MessageCard = ({ message }: { message: Message }) => (
     <Card
-      className={`border-l-4 ${getMessageColor(message.type)} ${!message.read ? 'shadow-md' : ''}`}
-      onClick={() => !message.read && handleMarkAsRead(message.id)}
+      className={`border-l-4 ${getMessageColor(message.type)} ${!isRead(message.id) ? 'shadow-md' : ''}`}
+      onClick={() => !isRead(message.id) && handleMarkAsRead(message.id)}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="mt-1">{getMessageIcon(message.type)}</div>
           <div className="flex-1">
             <div className="flex items-start justify-between mb-1">
-              <h3 className={`font-semibold ${!message.read ? 'text-gray-900' : 'text-gray-700'}`}>
+              <h3
+                className={`font-semibold ${!isRead(message.id) ? 'text-gray-900' : 'text-gray-700'}`}
+              >
                 {message.title}
               </h3>
-              {!message.read && (
+              {!isRead(message.id) && (
                 <Badge variant="default" className="ml-2">
                   Nueva
                 </Badge>
               )}
             </div>
-            <p className={`text-sm mb-2 ${!message.read ? 'text-gray-700' : 'text-gray-600'}`}>
+            <p
+              className={`text-sm mb-2 ${!isRead(message.id) ? 'text-gray-700' : 'text-gray-600'}`}
+            >
               {message.message}
             </p>
             <p className="text-xs text-gray-500">{formatDate(message.date)}</p>
@@ -227,9 +302,17 @@ export default function Inbox() {
         </TabsContent>
 
         <TabsContent value="all" className="space-y-4 mt-6">
-          {messages.map((message) => (
-            <MessageCard key={message.id} message={message} />
-          ))}
+          {messages.length > 0 ? (
+            messages.map((message) => <MessageCard key={message.id} message={message} />)
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="font-semibold text-gray-900 mb-2">Sin notificaciones</h3>
+                <p className="text-gray-600 text-sm">Aun no hay mensajes para mostrar</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="read" className="space-y-4 mt-6">

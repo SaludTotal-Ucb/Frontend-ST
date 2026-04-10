@@ -2,6 +2,7 @@ import { Lock, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { API_URLS } from '../../config/api-config';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../components/ui/button';
 import {
@@ -33,7 +34,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      const response = await fetch(`${API_URLS.auth}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { API_URLS } from '../../../config/api-config';
 import { useAuth } from '../../../hooks/useAuth';
 import { useCitas } from '../../../hooks/useCitas';
 import { Alert, AlertDescription } from '../../components/ui/alert';
@@ -169,7 +170,7 @@ export default function BookAppointment() {
             proxima_cita: formattedDate,
           };
 
-          await axios.post('http://localhost:3002/api/historial', payloadHistorial, {
+          await axios.post(`${API_URLS.historial}/historial`, payloadHistorial, {
             headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,
           });

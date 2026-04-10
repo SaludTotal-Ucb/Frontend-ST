@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useState } from 'react';
+import { API_URLS } from '../config/api-config';
 import { useAuth } from '../hooks/useAuth.ts';
 
 export const Login = () => {
@@ -10,7 +11,7 @@ export const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', {
+      const response = await axios.post(`${API_URLS.auth}/auth/login`, {
         email,
         password,
       });

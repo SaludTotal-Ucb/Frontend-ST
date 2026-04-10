@@ -1,11 +1,13 @@
 import { Calendar, Download, Eye, FileText, User } from 'lucide-react';
+import { useAuth } from '../../../hooks/useAuth';
+import { useCitas } from '../../../hooks/useCitas';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 interface MedicalRecord {
-  id: number;
+  id: string;
   type: 'consultation' | 'study' | 'prescription';
   title: string;
   doctor: string;
@@ -15,59 +17,93 @@ interface MedicalRecord {
   description: string;
 }
 
+type HistorialApi = {
+  id: string;
+  diagnostico?: string;
+  descripcion?: string;
+  tratamiento?: string;
+  medico_encargado?: string;
+  fecha?: string;
+  created_at?: string;
+  recetas?: Array<{
+    medicamento?: string;
+    dosis?: string;
+    frecuencia?: string;
+    indicaciones?: string;
+  }>;
+};
+
 export default function MedicalHistory() {
-  const records: MedicalRecord[] = [
-    {
-      id: 1,
-      type: 'consultation',
-      title: 'Consulta Cardiológica',
-      doctor: 'Dr. Carlos Mendoza',
-      specialty: 'Cardiología',
-      date: '2026-02-10',
-      clinic: 'Hospital Central',
-      description: 'Control de presión arterial. Diagnóstico: Hipertensión leve controlada.',
-    },
-    {
-      id: 2,
-      type: 'study',
-      title: 'Electrocardiograma',
-      doctor: 'Dr. Carlos Mendoza',
-      specialty: 'Cardiología',
-      date: '2026-02-10',
-      clinic: 'Hospital Central',
-      description: 'Estudio complementario de función cardíaca.',
-    },
-    {
-      id: 3,
-      type: 'prescription',
-      title: 'Receta Médica',
-      doctor: 'Dr. Carlos Mendoza',
-      specialty: 'Cardiología',
-      date: '2026-02-10',
-      clinic: 'Hospital Central',
-      description: 'Enalapril 10mg - Tomar 1 tableta cada 12 horas por 30 días.',
-    },
-    {
-      id: 4,
-      type: 'consultation',
-      title: 'Consulta Dermatológica',
-      doctor: 'Dra. María Torres',
-      specialty: 'Dermatología',
-      date: '2026-01-15',
-      clinic: 'Clínica del Sur',
-      description: 'Evaluación de lesiones cutáneas. Diagnóstico: Dermatitis atópica.',
-    },
-    {
-      id: 5,
-      type: 'study',
-      title: 'Análisis de Sangre Completo',
-      doctor: 'Dr. Juan Pérez',
-      specialty: 'Medicina General',
-      date: '2025-12-20',
-      clinic: 'Centro Médico Norte',
-      description: 'Hemograma completo, perfil lipídico, glucosa.',
-    },
-  ];
+  const { user } = useAuth();
+  const patientId = user?.id ?? '';
+  const { useHistorialPaciente } = useCitas();
+  const { data: historial, isLoading, isError } = useHistorialPaciente(patientId);
+
+  const formatLocalDate = (isoDate: string) => {
+    if (!isoDate) return 'Fecha no disponible';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+      const [year, month, day] = isoDate.split('-').map(Number);
+      return new Date(year, month - 1, day).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      });
+    }
+
+    return new Date(isoDate).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  const mapHistorialToRecords = (items: HistorialApi[]): MedicalRecord[] => {
+    const mapped: MedicalRecord[] = [];
+
+    for (const item of items || []) {
+      const dateValue = item.fecha || item.created_at || '';
+      const consultationDescription = [item.descripcion, item.tratamiento]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+
+      mapped.push({
+        id: item.id,
+        type: 'consultation',
+        title: item.diagnostico || 'Consulta Medica',
+        doctor: item.medico_encargado || 'Medico no especificado',
+        specialty: 'Consulta General',
+        date: dateValue,
+        clinic: 'Centro de Salud',
+        description: consultationDescription || 'Sin detalles registrados.',
+      });
+
+      (item.recetas || []).forEach((receta, index) => {
+        const detalle = [
+          receta.dosis ? `Dosis: ${receta.dosis}` : '',
+          receta.frecuencia ? `Frecuencia: ${receta.frecuencia}` : '',
+          receta.indicaciones ? `Indicaciones: ${receta.indicaciones}` : '',
+        ]
+          .filter(Boolean)
+          .join(' | ');
+
+        mapped.push({
+          id: `${item.id}-rx-${index}`,
+          type: 'prescription',
+          title: `Receta: ${receta.medicamento || 'Medicamento'}`,
+          doctor: item.medico_encargado || 'Medico no especificado',
+          specialty: 'Receta Medica',
+          date: dateValue,
+          clinic: 'Centro de Salud',
+          description: detalle || 'Sin detalles de receta.',
+        });
+      });
+    }
+
+    return mapped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+
+  const records = mapHistorialToRecords((historial || []) as HistorialApi[]);
 
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -108,12 +144,7 @@ export default function MedicalHistory() {
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    {new Date(record.date).toLocaleDateString('es-ES', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric',
-                    })}{' '}
-                    - {record.clinic}
+                    {formatLocalDate(record.date)} - {record.clinic}
                   </span>
                 </div>
               </div>
@@ -194,27 +225,69 @@ export default function MedicalHistory() {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4 mt-6">
-          {records.map((record) => (
-            <RecordCard key={record.id} record={record} />
-          ))}
+          {!patientId ? (
+            <Card>
+              <CardContent className="p-8 text-center text-sm text-gray-600">
+                Debes iniciar sesion para ver tu historial medico.
+              </CardContent>
+            </Card>
+          ) : isLoading ? (
+            <Card>
+              <CardContent className="p-8 text-center text-sm text-gray-600">
+                Cargando historial medico...
+              </CardContent>
+            </Card>
+          ) : isError ? (
+            <Card>
+              <CardContent className="p-8 text-center text-sm text-red-600">
+                No se pudo cargar el historial medico.
+              </CardContent>
+            </Card>
+          ) : records.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-sm text-gray-600">
+                Aun no tienes registros en tu historial medico.
+              </CardContent>
+            </Card>
+          ) : (
+            records.map((record) => <RecordCard key={record.id} record={record} />)
+          )}
         </TabsContent>
 
         <TabsContent value="consultations" className="space-y-4 mt-6">
-          {consultations.map((record) => (
-            <RecordCard key={record.id} record={record} />
-          ))}
+          {consultations.length > 0 ? (
+            consultations.map((record) => <RecordCard key={record.id} record={record} />)
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center text-sm text-gray-600">
+                No hay consultas registradas.
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="studies" className="space-y-4 mt-6">
-          {studies.map((record) => (
-            <RecordCard key={record.id} record={record} />
-          ))}
+          {studies.length > 0 ? (
+            studies.map((record) => <RecordCard key={record.id} record={record} />)
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center text-sm text-gray-600">
+                No hay estudios registrados.
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="prescriptions" className="space-y-4 mt-6">
-          {prescriptions.map((record) => (
-            <RecordCard key={record.id} record={record} />
-          ))}
+          {prescriptions.length > 0 ? (
+            prescriptions.map((record) => <RecordCard key={record.id} record={record} />)
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center text-sm text-gray-600">
+                No hay recetas registradas.
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

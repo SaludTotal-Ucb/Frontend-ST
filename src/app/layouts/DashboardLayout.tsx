@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import logo from '../../assets/ef6b1b356c372c4c3cd408e1518a34485f7432b6.png';
 import { useAuth } from '../../hooks/useAuth';
+import { useCitas } from '../../hooks/useCitas';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 
@@ -30,7 +31,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [unreadCount] = useState(3);
+  const { useCitasPaciente, useCitasDoctor } = useCitas();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -40,6 +41,49 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
   // Obtener datos del usuario desde context o temporalmente localStorage
   const currentUser = user || JSON.parse(localStorage.getItem('currentUser') || '{}');
   const userName = currentUser.name || 'Usuario Demo';
+  const patientId = role === 'patient' ? currentUser.id || '' : '';
+  const doctorId = role === 'doctor' ? currentUser.id || '' : '';
+
+  const { data: patientAppointments } = useCitasPaciente(patientId);
+  const { data: doctorAppointments } = useCitasDoctor(doctorId);
+
+  const appointments =
+    role === 'doctor'
+      ? doctorAppointments || []
+      : role === 'patient'
+        ? patientAppointments || []
+        : [];
+
+  const notifications = appointments
+    .slice()
+    .sort(
+      (a, b) =>
+        new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime(),
+    )
+    .slice(0, 4)
+    .map((appointment, index) => {
+      const isUnread = appointment.status === 'pending' || appointment.status === 'confirmed';
+      const title =
+        appointment.status === 'confirmed'
+          ? 'Cita confirmada'
+          : appointment.status === 'pending'
+            ? 'Cita pendiente'
+            : appointment.status === 'cancelled'
+              ? 'Cita cancelada'
+              : appointment.status === 'absent'
+                ? 'Registro de ausencia'
+                : 'Actualizacion de cita';
+
+      return {
+        id: `${appointment.id}-${index}`,
+        title,
+        message: `${appointment.specialty} - ${appointment.date} ${appointment.time}`,
+        time: appointment.date,
+        unread: isUnread,
+      };
+    });
+
+  const unreadCount = notifications.filter((notification) => notification.unread).length;
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -66,37 +110,6 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
     localStorage.removeItem('currentUser');
     navigate('/');
   };
-
-  const notifications = [
-    {
-      id: 1,
-      title: 'Nueva cita confirmada',
-      message: 'Tu cita para mañana ha sido confirmada',
-      time: 'Hace 5 min',
-      unread: true,
-    },
-    {
-      id: 2,
-      title: 'Recordatorio de cita',
-      message: 'Tienes una cita en 24 horas',
-      time: 'Hace 1 hora',
-      unread: true,
-    },
-    {
-      id: 3,
-      title: 'Resultado disponible',
-      message: 'Tu resultado de laboratorio está listo',
-      time: 'Hace 3 horas',
-      unread: true,
-    },
-    {
-      id: 4,
-      title: 'Mensaje del médico',
-      message: 'Dr. García te ha enviado un mensaje',
-      time: 'Ayer',
-      unread: false,
-    },
-  ];
 
   const patientMenuItems = [
     { path: '/patient', icon: Home, label: 'Inicio' },
@@ -228,25 +241,31 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                       <h3 className="font-semibold text-gray-900">Notificaciones</h3>
                     </div>
                     <div className="divide-y divide-gray-100">
-                      {notifications.map((notif) => (
-                        <div
-                          key={notif.id}
-                          className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${notif.unread ? 'bg-blue-50/50' : ''}`}
-                        >
-                          <div className="flex gap-3">
-                            {notif.unread && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {notif.title}
-                              </p>
-                              <p className="text-sm text-gray-600 mt-0.5">{notif.message}</p>
-                              <p className="text-xs text-gray-400 mt-1">{notif.time}</p>
+                      {notifications.length > 0 ? (
+                        notifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${notif.unread ? 'bg-blue-50/50' : ''}`}
+                          >
+                            <div className="flex gap-3">
+                              {notif.unread && (
+                                <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {notif.title}
+                                </p>
+                                <p className="text-sm text-gray-600 mt-0.5">{notif.message}</p>
+                                <p className="text-xs text-gray-400 mt-1">{notif.time}</p>
+                              </div>
                             </div>
                           </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-6 text-sm text-gray-500 text-center">
+                          No hay notificaciones recientes.
                         </div>
-                      ))}
+                      )}
                     </div>
                     <div className="px-4 py-2 border-t border-gray-200">
                       <button className="text-sm text-blue-600 hover:text-blue-700 font-medium w-full text-center">

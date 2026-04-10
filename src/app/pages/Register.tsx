@@ -2,6 +2,7 @@ import { CreditCard, Lock, Mail, Phone, User } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { API_URLS } from '../../config/api-config';
 import { Button } from '../components/ui/button';
 import {
   Card,
@@ -81,7 +82,7 @@ export default function Register() {
 
     try {
       // Usando el endpoint de Auth desde nuestro servidor (puerto 3001)
-      const response = await fetch('http://localhost:3001/api/auth/register', {
+      const response = await fetch(`${API_URLS.auth}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
