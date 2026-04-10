@@ -68,6 +68,8 @@ export default function DoctorDashboard() {
         );
       case 'pending':
         return <Badge variant="secondary">Pendiente</Badge>;
+      case 'absent':
+        return <Badge variant="destructive">Ausente</Badge>;
       default:
         return null;
     }

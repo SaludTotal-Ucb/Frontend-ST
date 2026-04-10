@@ -28,7 +28,7 @@ interface Appointment {
   clinic: string;
   date: string;
   time: string;
-  status: 'confirmed' | 'completed' | 'cancelled' | 'no-show';
+  status: 'confirmed' | 'completed' | 'cancelled' | 'no-show' | 'absent';
 }
 
 export default function AllAppointments() {
@@ -79,7 +79,7 @@ export default function AllAppointments() {
       clinic: 'Hospital Central',
       date: '2026-03-24',
       time: '14:00',
-      status: 'no-show',
+      status: 'absent',
     },
     {
       id: 5,
@@ -136,6 +136,7 @@ export default function AllAppointments() {
       case 'cancelled':
         return <Badge variant="destructive">Cancelada</Badge>;
       case 'no-show':
+      case 'absent':
         return <Badge className="bg-orange-600">No asistió</Badge>;
       default:
         return null;
@@ -159,7 +160,7 @@ export default function AllAppointments() {
     confirmed: appointments.filter((a) => a.status === 'confirmed').length,
     completed: appointments.filter((a) => a.status === 'completed').length,
     cancelled: appointments.filter((a) => a.status === 'cancelled').length,
-    noShow: appointments.filter((a) => a.status === 'no-show').length,
+    noShow: appointments.filter((a) => a.status === 'no-show' || a.status === 'absent').length,
   };
 
   return (

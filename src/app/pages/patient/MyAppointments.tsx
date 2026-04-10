@@ -65,6 +65,8 @@ export default function MyAppointments() {
         return <Badge variant="outline">Completada</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelada</Badge>;
+      case 'absent':
+        return <Badge variant="outline">Ausente</Badge>;
       default:
         return null;
     }
