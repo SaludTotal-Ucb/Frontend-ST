@@ -1,9 +1,7 @@
-import axios from 'axios';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { API_URLS } from '../../../config/api-config';
 import { useAuth } from '../../../hooks/useAuth';
 import { useCitas } from '../../../hooks/useCitas';
 import { Alert, AlertDescription } from '../../components/ui/alert';
@@ -158,26 +156,6 @@ export default function BookAppointment() {
 
     agendarCitaMutation.mutate(payload as any, {
       onSuccess: async () => {
-        // Tambien guardamos en el historial del puerto 3002
-        try {
-          const token = localStorage.getItem('token');
-          const payloadHistorial = {
-            paciente_id: String(user.id),
-            diagnostico: 'Cita Pendiente',
-            severidad: 'BAJA',
-            medico_encargado: selectedDoctor,
-            descripcion: 'Motivo: Consulta programada desde la web',
-            proxima_cita: formattedDate,
-          };
-
-          await axios.post(`${API_URLS.historial}/historial`, payloadHistorial, {
-            headers: { Authorization: `Bearer ${token}` },
-            withCredentials: true,
-          });
-        } catch (err) {
-          console.error('Error copiando al historial:', err);
-        }
-
         toast.success('Cita reservada exitosamente');
         setTimeout(() => navigate('/patient/my-appointments'), 1500);
       },
@@ -185,9 +163,11 @@ export default function BookAppointment() {
         console.error('Error al agendar:', error);
         if (error.response) {
           console.error('DATA ERROR BACKEND:', error.response.data);
-          toast.error(
-            `Error Backend: ${JSON.stringify(error.response.data?.message || error.response.data)}`,
-          );
+          const backendMessage =
+            error.response.data?.error ||
+            error.response.data?.message ||
+            'No se pudo agendar la cita';
+          toast.error(`Error Backend: ${backendMessage}`);
         } else {
           toast.error('Hubo un problema al reservar la cita. Revisa la consola.');
         }
