@@ -1,6 +1,15 @@
 node_modules
-npm-debug.log
 dist
+.env
 .git
 .gitignore
-.env
+.husky
+.prettierrc
+.stylelintrc.json
+biome.json
+README.md
+# tsconfig.json (necesario para el build)
+# vite.config.ts (necesario para el build)
+# tailwind.config.js (necesario para el build)
+# postcss.config.js (necesario para el build)
+# nginx.conf (necesario para el build)
