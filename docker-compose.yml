@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # 1. Frontend: Servido por Nginx en el puerto 80 internamente
+  frontend-st:
+    image: frontend-st:latest
+    container_name: frontend_container
+    ports:
+      - "8081:80"
+    depends_on:
+      - micro-citas
+      - micro-historial
+      - micro-autenticacion
+    networks:
+      - salud-total-network
+
+  # 2. Microservicio de Citas: Basado en Express y TypeORM
+  micro-citas:
+    image: micro-citas:latest
+    container_name: citas_service
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DB_HOST=db-mysql-citas
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=salud_total_db
+    depends_on:
+      - db-mysql-citas
+    networks:
+      - salud-total-network
+
+  # Base de datos MySQL para el servicio de Citas
+  db-mysql-citas:
+    image: mysql:8.0
+    container_name: mysql_db
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=salud_total_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - salud-total-network
+
+  # 3. Microservicio de Historial: Basado en NestJS y Supabase
+  micro-historial:
+    image: micro-historial:latest
+    container_name: historial_service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - SUPABASE_URL=https://uonhfyqzpkjyitfqlmxy.supabase.co
+      - SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvbmhmeXF6cGtqeWl0ZnFsbXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTM5OTYwMDAsImV4cCI6MjAzOTU3MjAwMH0.dummy_key
+    networks:
+      - salud-total-network
+
+  # 4. Microservicio de Autenticación: Basado en Express y Prisma
+  micro-autenticacion:
+    image: micro-auth:latest
+    container_name: auth_service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - DATABASE_URL=mysql://root:root@db-mysql-citas:3306/salud_total_db
+      - JWT_SECRET=3b7a9c1d2e5f8g0h4i1j6k9l2m5n8o0p
+    depends_on:
+      - db-mysql-citas
+    networks:
+      - salud-total-network
+
+networks:
+  salud-total-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
