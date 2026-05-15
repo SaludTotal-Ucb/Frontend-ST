@@ -54,10 +54,11 @@ export const authService = {
       body: JSON.stringify({ email, password }),
     }),
 
-  register: async (name: string, email: string, password: string) =>
+  // CORREGIDO: Se agregaron 'ci' y 'phone' para coincidir con la validación del Backend y Prisma
+  register: async (name: string, email: string, password: string, ci: string, phone: string) =>
     apiCall('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, ci, phone }),
     }),
 
   logout: async () =>
@@ -65,6 +66,7 @@ export const authService = {
       method: 'POST',
     }),
 
+  // Nota: Este endpoint aún debe ser implementado en tu backend (AuthController)
   getProfile: async () => apiCall('/auth/profile'),
 
   recoverPassword: async (email: string) =>
@@ -75,30 +77,55 @@ export const authService = {
 };
 
 export const appointmentService = {
-  getAppointments: async () => apiCall('/appointments'),
+  // CORREGIDO: Ahora usa la ruta /citas en español
+  getAppointments: async () => apiCall('/citas'),
 
-  bookAppointment: async (data: object) =>
-    apiCall('/appointments', {
+  bookAppointment: async (data: {
+    doctorId: string;
+    fecha: string;
+    especialidad: string;
+    notas?: string;
+  }) =>
+    apiCall('/citas', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
+  // CORREGIDO: Ahora usa PATCH y la ruta /citas/:id/cancelar exacta del backend
   cancelAppointment: async (id: string) =>
-    apiCall(`/appointments/${id}`, {
-      method: 'DELETE',
+    apiCall(`/citas/${id}/cancelar`, {
+      method: 'PATCH',
     }),
 };
 
+// NUEVO: Servicio para manejar el Historial Médico respetando tu DTO y esquema de base de datos
+export const historialService = {
+  getOwnHistorial: async () => apiCall('/historial/me'),
+
+  // Usa estrictamente camelCase para que el Backend lo acepte sin errores
+  crearHistorial: async (data: {
+    tipoSangre: string;
+    alergias: string[];
+    tratamientosEnCurso: string[];
+    afecciones: { problema: string; severidad: string; diagnostico: string }[];
+  }) =>
+    apiCall('/historial', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+// Nota: Los siguientes servicios llaman a rutas que aún no existen en el Backend.
+// Puedes usarlos de guía para saber qué endpoints te faltan crear en NestJS.
 export const doctorService = {
   getAgenda: async () => apiCall('/doctor/agenda'),
-
   getPatientHistory: async (patientId: string) => apiCall(`/doctor/patients/${patientId}/history`),
 };
 
 export const adminService = {
   getDashboard: async () => apiCall('/admin/dashboard'),
 
-  getAllAppointments: async () => apiCall('/admin/appointments'),
+  getAllAppointments: async () => apiCall('/admin/citas'), // ajustado a citas
 
   registerDoctor: async (data: object) =>
     apiCall('/admin/doctors', {
