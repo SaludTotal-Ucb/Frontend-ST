@@ -7,6 +7,7 @@
 		"dev": "vite",
 		"build": "vite build",
 		"preview": "vite preview",
+		"test": "vitest run",
 		"prepare": "husky",
 		"biome:check": "biome check .",
 		"biome:write": "biome check --write .",
@@ -83,12 +84,14 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.6",
+		"@testing-library/react": "^16.3.2",
 		"@types/node": "^25.5.0",
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^4.4.1",
 		"autoprefixer": "^10.4.21",
 		"husky": "^9.1.7",
+		"jsdom": "^29.1.1",
 		"lint-staged": "^16.3.3",
 		"postcss": "^8.5.6",
 		"postcss-scss": "^4.0.9",
@@ -97,6 +100,7 @@
 		"stylelint-config-standard": "^40.0.0",
 		"stylelint-config-standard-scss": "^17.0.0",
 		"tailwindcss": "^3.4.17",
-		"vite": "^5.4.19"
+		"vite": "^5.4.19",
+		"vitest": "^4.1.7"
 	}
 }

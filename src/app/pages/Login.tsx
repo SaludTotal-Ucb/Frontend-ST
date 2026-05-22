@@ -2,8 +2,8 @@ import { Lock, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { API_URLS } from '../../config/api-config';
 import { useAuth } from '../../hooks/useAuth';
+import { authService } from '../../services/api';
 import { Button } from '../components/ui/button';
 import {
   Card,
@@ -15,6 +15,23 @@ import {
 } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+
+export const getFrontendRole = (userObj: any): 'patient' | 'doctor' | 'admin' => {
+  const rawRole = userObj.role || userObj.rol || (userObj.roles && userObj.roles[0]) || 'patient';
+
+  const normalized = String(rawRole).toLowerCase();
+
+  if (normalized === 'paciente' || normalized === 'patient') {
+    return 'patient';
+  }
+  if (normalized === 'medico' || normalized === 'doctor') {
+    return 'doctor';
+  }
+  if (normalized === 'admin') {
+    return 'admin';
+  }
+  return 'patient';
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -34,24 +51,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URLS.auth}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await authService.login(email, password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.error || 'Credenciales incorrectas');
+      if (!response.success) {
+        throw new Error(response.message || 'Credenciales incorrectas');
       }
 
-      const token = data.token || data.session?.access_token || 'real-jwt-token';
-      const user = data.user || data.data?.user || data;
+      const responseData = (response as any).data || response;
+      const token = responseData.accessToken || responseData.token || 'real-jwt-token';
+      const refreshToken = responseData.refreshToken || responseData.refreshToken;
+      const user = responseData.user || responseData;
 
-      const userRole = user.role || user.rol || 'patient';
+      const userRole = getFrontendRole(user);
       const userName = user.name || user.nombre || user.fullName || email.split('@')[0];
       const userId = user.id || user.usuario_id || user.uid;
 
@@ -62,6 +73,9 @@ export default function Login() {
         email: user.email || email,
       };
 
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
+      }
       localStorage.setItem('currentUser', JSON.stringify(userToSave));
       login(token, userToSave);
 
