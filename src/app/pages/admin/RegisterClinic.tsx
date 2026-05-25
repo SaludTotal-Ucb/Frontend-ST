@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { adminService } from '../../../services/api';
 import { Button } from '../../components/ui/button';
 import {
   Card,
@@ -17,6 +18,7 @@ import { Textarea } from '../../components/ui/textarea';
 
 export default function RegisterClinic() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -54,7 +56,7 @@ export default function RegisterClinic() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (formData.specialties.length === 0) {
@@ -62,8 +64,30 @@ export default function RegisterClinic() {
       return;
     }
 
-    toast.success('Clínica registrada exitosamente');
-    setTimeout(() => navigate('/admin'), 1500);
+    setLoading(true);
+    try {
+      const response = await adminService.registerClinic({
+        nombre: formData.name,
+        direccion: formData.address,
+        ciudad: formData.city,
+        telefono: formData.phone,
+        email: formData.email,
+        horario: formData.schedule,
+        descripcion: formData.description,
+        especialidades: formData.specialties,
+      });
+
+      if (response.success) {
+        toast.success('Clínica registrada exitosamente');
+        setTimeout(() => navigate('/admin'), 1500);
+      } else {
+        toast.error(response.message || 'Error al registrar la clínica');
+      }
+    } catch (error) {
+      toast.error((error as { message?: string })?.message || 'Error al registrar la clínica');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -199,8 +223,8 @@ export default function RegisterClinic() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="flex-1">
-                Registrar Clínica
+              <Button type="submit" className="flex-1" disabled={loading}>
+                {loading ? 'Registrando...' : 'Registrar Clínica'}
               </Button>
             </div>
           </CardContent>

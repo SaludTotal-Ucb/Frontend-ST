@@ -1,4 +1,3 @@
-import axios from 'axios';
 import {
   AlertCircle,
   ArrowLeft,
@@ -13,8 +12,8 @@ import {
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
-import { API_URLS } from '../../../config/api-config';
 import { useAuth } from '../../../hooks/useAuth';
+import { api } from '../../../services/api';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -59,7 +58,7 @@ export default function PatientHistoryView() {
 
     try {
       setIsSaving(true);
-      const token = localStorage.getItem('token');
+      const _token = localStorage.getItem('token');
 
       const payloadHistorial = {
         paciente_id: String(id), // ID del paciente mandado en la ruta
@@ -70,12 +69,7 @@ export default function PatientHistoryView() {
         tratamiento: tratamiento,
       };
 
-      await axios.post(`${API_URLS.historial}/historial`, payloadHistorial, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        withCredentials: true,
-      });
+      await api.post('/historial', payloadHistorial);
 
       toast.success('Consulta y diagnóstico guardados en el historial del paciente');
       handleFinishConsultation();

@@ -30,10 +30,15 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-let isRefreshing = false;
-let failedQueue: any[] = [];
+interface FailedRequest {
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}
 
-const processQueue = (error: any, token: string | null = null) => {
+let isRefreshing = false;
+let failedQueue: FailedRequest[] = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
   for (const prom of failedQueue) {
     if (token) {
       prom.resolve(token);
@@ -112,10 +117,11 @@ interface ApiResponse<T> {
 
 async function apiCall<T>(
   endpoint: string,
-  options: { method?: string; body?: any; headers?: any } = {},
+  options: { method?: string; body?: unknown; headers?: Record<string, string> } = {},
 ): Promise<ApiResponse<T>> {
   const method = (options.method || 'GET').toLowerCase();
 
+  // biome-ignore lint/suspicious/noExplicitAny: Axios config dynamic type
   const config: any = {
     method,
     url: endpoint,
@@ -123,22 +129,24 @@ async function apiCall<T>(
   };
 
   if (options.body) {
-    config.data = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+    config.data =
+      typeof options.body === 'string' ? JSON.parse(options.body as string) : options.body;
   }
 
   try {
     const response = await api(config);
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('API Error:', error);
-    const msg = error.response?.data?.message || error.message || 'Error en la petición';
+    const err = error as { response?: { data?: { message?: string } }; message?: string };
+    const msg = err.response?.data?.message || err.message || 'Error en la petición';
     throw new Error(msg);
   }
 }
 
 export const authService = {
   login: async (email: string, password: string) =>
-    apiCall<{ user: any; accessToken: string; refreshToken: string }>('/auth/login', {
+    apiCall<{ user: unknown; accessToken: string; refreshToken: string }>('/auth/login', {
       method: 'POST',
       body: { email, password },
     }),
@@ -204,12 +212,20 @@ export const historialService = {
 export const doctorService = {
   getAgenda: async () => apiCall('/doctor/agenda'),
   getPatientHistory: async (patientId: string) => apiCall(`/doctor/patients/${patientId}/history`),
+  getDashboardStats: async () =>
+    apiCall<{ citasHoy: number; citasCompletadas: number; pacientesUnicos: number }>(
+      '/doctor/dashboard-stats',
+    ),
 };
 
 export const adminService = {
-  getDashboard: async () => apiCall('/admin/dashboard'),
+  getDashboard: async () => apiCall<unknown>('/admin/dashboard'),
 
   getAllAppointments: async () => apiCall('/admin/citas'),
+
+  getClinicas: async () => apiCall<unknown[]>('/clinicas'),
+
+  getDoctores: async () => apiCall<unknown[]>('/doctores'),
 
   registerDoctor: async (data: object) =>
     apiCall('/admin/doctors', {
