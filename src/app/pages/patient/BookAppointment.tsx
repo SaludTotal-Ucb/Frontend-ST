@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { useAuth } from '../../../hooks/useAuth';
 import { useCitas } from '../../../hooks/useCitas';
+import { adminService } from '../../../services/api';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import { Calendar } from '../../components/ui/calendar';
@@ -23,6 +24,20 @@ import {
   SelectValue,
 } from '../../components/ui/select';
 
+interface Clinic {
+  id: string;
+  nombre: string;
+  ciudad: string;
+  especialidades?: string[];
+}
+
+interface Doctor {
+  id: string;
+  name: string;
+  clinicaId: string;
+  especialidad?: string;
+}
+
 export default function BookAppointment() {
   const navigate = useNavigate();
   const { agendarCitaMutation, useCitasDoctor } = useCitas();
@@ -35,6 +50,10 @@ export default function BookAppointment() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState('');
 
+  const [dbClinics, setDbClinics] = useState<Clinic[]>([]);
+  const [dbDoctors, setDbDoctors] = useState<Doctor[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
   const specialties = [
     'Cardiología',
     'Dermatología',
@@ -46,17 +65,64 @@ export default function BookAppointment() {
     'Traumatología',
   ];
 
-  const clinics = [
-    'Hospital Central',
-    'Clínica del Sur',
-    'Centro Médico Norte',
-    'Hospital San Juan',
-  ];
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoadingData(true);
+        const [clinicsData, doctorsData] = await Promise.all([
+          adminService.getClinicas(),
+          adminService.getDoctores(),
+        ]);
+        const clinicsList = Array.isArray(clinicsData)
+          ? clinicsData
+          : (clinicsData as { data?: Clinic[] }).data || [];
+        const doctorsList = Array.isArray(doctorsData)
+          ? doctorsData
+          : (doctorsData as { data?: Doctor[] }).data || [];
+        setDbClinics(clinicsList as Clinic[]);
+        setDbDoctors(doctorsList as Doctor[]);
+      } catch (error) {
+        toast.error('Error al cargar la información de clínicas y médicos');
+        console.error(error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+    loadData();
+  }, []);
 
-  const doctors = {
-    Cardiología: ['Dr. Carlos Mendoza', 'Dra. Ana García'],
-    Dermatología: ['Dr. Luis Rojas', 'Dra. María Torres'],
-    Ginecología: ['Dra. Patricia Luna', 'Dra. Carmen Díaz'],
+  const filteredClinics = useMemo(() => {
+    if (!selectedSpecialty) return [];
+    return dbClinics.filter((clinic) =>
+      clinic.especialidades?.some(
+        (specName: string) => specName.toLowerCase() === selectedSpecialty.toLowerCase(),
+      ),
+    );
+  }, [dbClinics, selectedSpecialty]);
+
+  const filteredDoctors = useMemo(() => {
+    if (!selectedClinic || !selectedSpecialty) return [];
+    return dbDoctors.filter(
+      (doc) =>
+        doc.clinicaId === selectedClinic &&
+        doc.especialidad?.toLowerCase() === selectedSpecialty.toLowerCase(),
+    );
+  }, [dbDoctors, selectedClinic, selectedSpecialty]);
+
+  const selectedClinicName = useMemo(() => {
+    const clinic = dbClinics.find((c) => c.id === selectedClinic);
+    return clinic ? clinic.nombre : '';
+  }, [dbClinics, selectedClinic]);
+
+  const selectedDoctorName = useMemo(() => {
+    const doc = dbDoctors.find((d) => d.id === selectedDoctor);
+    return doc ? doc.name : '';
+  }, [dbDoctors, selectedDoctor]);
+
+  const handleClinicChange = (value: string) => {
+    setSelectedClinic(value);
+    setSelectedDoctor('');
+    setSelectedTime('');
   };
 
   const availableTimes = [
@@ -154,19 +220,18 @@ export default function BookAppointment() {
 
     console.log('PAYLOAD A ENVIAR AL BACKEND:', payload);
 
-    agendarCitaMutation.mutate(payload as any, {
+    agendarCitaMutation.mutate(payload, {
       onSuccess: async () => {
         toast.success('Cita reservada exitosamente');
         setTimeout(() => navigate('/patient/my-appointments'), 1500);
       },
-      onError: (error: any) => {
+      onError: (error) => {
         console.error('Error al agendar:', error);
-        if (error.response) {
-          console.error('DATA ERROR BACKEND:', error.response.data);
+        const err = error as { response?: { data?: { error?: string; message?: string } } };
+        if (err.response) {
+          console.error('DATA ERROR BACKEND:', err.response.data);
           const backendMessage =
-            error.response.data?.error ||
-            error.response.data?.message ||
-            'No se pudo agendar la cita';
+            err.response.data?.error || err.response.data?.message || 'No se pudo agendar la cita';
           toast.error(`Error Backend: ${backendMessage}`);
         } else {
           toast.error('Hubo un problema al reservar la cita. Revisa la consola.');
@@ -252,43 +317,66 @@ export default function BookAppointment() {
           {/* Step 2: Clinic and Doctor */}
           {step === 2 && (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="clinic">Clínica u Hospital</Label>
-                <Select value={selectedClinic} onValueChange={setSelectedClinic}>
-                  <SelectTrigger id="clinic">
-                    <SelectValue placeholder="Selecciona una clínica" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clinics.map((clinic) => (
-                      <SelectItem key={clinic} value={clinic}>
-                        {clinic}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {isLoadingData ? (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  Cargando clínicas y médicos...
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="clinic">Clínica u Hospital</Label>
+                    <Select value={selectedClinic} onValueChange={handleClinicChange}>
+                      <SelectTrigger id="clinic">
+                        <SelectValue
+                          placeholder={
+                            filteredClinics.length === 0
+                              ? 'No hay clínicas con esta especialidad'
+                              : 'Selecciona una clínica'
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredClinics.map((clinic) => (
+                          <SelectItem key={clinic.id} value={clinic.id}>
+                            {clinic.nombre} ({clinic.ciudad})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="doctor">Médico</Label>
-                <Select
-                  value={selectedDoctor}
-                  onValueChange={(doctor) => {
-                    setSelectedDoctor(doctor);
-                    setSelectedTime('');
-                  }}
-                >
-                  <SelectTrigger id="doctor">
-                    <SelectValue placeholder="Selecciona un médico" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(doctors[selectedSpecialty as keyof typeof doctors] || []).map((doctor) => (
-                      <SelectItem key={doctor} value={doctor}>
-                        {doctor}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="doctor">Médico</Label>
+                    <Select
+                      value={selectedDoctor}
+                      onValueChange={(doctor) => {
+                        setSelectedDoctor(doctor);
+                        setSelectedTime('');
+                      }}
+                      disabled={!selectedClinic}
+                    >
+                      <SelectTrigger id="doctor">
+                        <SelectValue
+                          placeholder={
+                            !selectedClinic
+                              ? 'Primero selecciona una clínica'
+                              : filteredDoctors.length === 0
+                                ? 'No hay médicos de esta especialidad en la clínica'
+                                : 'Selecciona un médico'
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredDoctors.map((doctor) => (
+                          <SelectItem key={doctor.id} value={doctor.id}>
+                            {doctor.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -356,11 +444,11 @@ export default function BookAppointment() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Clínica</p>
-                    <p className="font-medium text-gray-900">{selectedClinic}</p>
+                    <p className="font-medium text-gray-900">{selectedClinicName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Médico</p>
-                    <p className="font-medium text-gray-900">{selectedDoctor}</p>
+                    <p className="font-medium text-gray-900">{selectedDoctorName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Fecha</p>

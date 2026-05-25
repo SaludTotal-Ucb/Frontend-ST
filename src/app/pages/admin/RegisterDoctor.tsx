@@ -1,7 +1,8 @@
 import { ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { adminService } from '../../../services/api';
 import { Button } from '../../components/ui/button';
 import {
   Card,
@@ -22,6 +23,8 @@ import {
 
 export default function RegisterDoctor() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [clinics, setClinics] = useState<{ id: string; nombre: string }[]>([]);
   const [formData, setFormData] = useState({
     fullName: '',
     ci: '',
@@ -44,20 +47,34 @@ export default function RegisterDoctor() {
     'Oftalmología',
     'Pediatría',
     'Traumatología',
+    'Urología',
+    'Endocrinología',
   ];
 
-  const clinics = [
-    'Hospital Central',
-    'Clínica del Sur',
-    'Centro Médico Norte',
-    'Hospital San Juan',
-  ];
+  useEffect(() => {
+    const fetchClinics = async () => {
+      try {
+        const response = await adminService.getClinicas();
+        // response es directamente un array en nuestro apiCall o response.data
+        // El apiCall retorna response.data, que en el backend es un array
+        const list = Array.isArray(response)
+          ? response
+          : (response as { data?: unknown[] }).data || [];
+        setClinics(
+          (list as { id: string; nombre: string }[]).map((c) => ({ id: c.id, nombre: c.nombre })),
+        );
+      } catch (_error) {
+        toast.error('Error al cargar la lista de clínicas');
+      }
+    };
+    fetchClinics();
+  }, []);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
@@ -70,8 +87,41 @@ export default function RegisterDoctor() {
       return;
     }
 
-    toast.success('Médico registrado exitosamente');
-    setTimeout(() => navigate('/admin'), 1500);
+    if (!formData.clinic) {
+      toast.error('Selecciona una clínica');
+      return;
+    }
+
+    if (!formData.specialty) {
+      toast.error('Selecciona una especialidad');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await adminService.registerDoctor({
+        name: formData.fullName,
+        ci: formData.ci,
+        email: formData.email,
+        phone: formData.phone,
+        passwordPlain: formData.password,
+        clinicaId: formData.clinic,
+        especialidad: formData.specialty,
+        numeroLicencia: formData.licenseNumber,
+        horarioAtencion: formData.schedule,
+      });
+
+      if (response.success) {
+        toast.success('Médico registrado exitosamente');
+        setTimeout(() => navigate('/admin'), 1500);
+      } else {
+        toast.error(response.message || 'Error al registrar al médico');
+      }
+    } catch (error) {
+      toast.error((error as { message?: string })?.message || 'Error al registrar al médico');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -180,9 +230,9 @@ export default function RegisterDoctor() {
                     <SelectValue placeholder="Selecciona una clínica" />
                   </SelectTrigger>
                   <SelectContent>
-                    {clinics.map((clinic) => (
-                      <SelectItem key={clinic} value={clinic}>
-                        {clinic}
+                    {clinics.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nombre}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -234,8 +284,8 @@ export default function RegisterDoctor() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="flex-1">
-                Registrar Médico
+              <Button type="submit" className="flex-1" disabled={loading}>
+                {loading ? 'Registrando...' : 'Registrar Médico'}
               </Button>
             </div>
           </CardContent>

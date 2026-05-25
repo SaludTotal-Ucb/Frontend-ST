@@ -2,7 +2,7 @@ import { CreditCard, Lock, Mail, Phone, User } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { API_URLS } from '../../config/api-config';
+import { authService } from '../../services/api';
 import { Button } from '../components/ui/button';
 import {
   Card,
@@ -81,35 +81,24 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // Usando el endpoint de Auth desde nuestro servidor (puerto 3001)
-      const response = await fetch(`${API_URLS.auth}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          ci: formData.ci, // Enviando CI por si el backend lo requiere
-          phone: formData.phone, // Enviando teléfono por si el backend lo requiere
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al registrar el usuario en el backend');
-      }
+      await authService.register(
+        formData.fullName,
+        formData.email,
+        formData.password,
+        formData.ci,
+        formData.phone,
+      );
 
       toast.success('Registro exitoso. Ahora puedes iniciar sesión');
       setTimeout(() => {
         setLoading(false);
         navigate('/');
       }, 1500);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error al registrar:', error);
-      toast.error(error.message || 'Error de conexión con el backend de Auth');
+      const message =
+        (error as { message?: string })?.message || 'Error de conexión con el backend de Auth';
+      toast.error(message);
       setLoading(false);
     }
   };

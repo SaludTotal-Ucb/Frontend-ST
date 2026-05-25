@@ -1,5 +1,10 @@
 import { Calendar, CheckCircle, Clock, FileText, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import { toast } from 'sonner';
+import { useAuth } from '../../../hooks/useAuth';
+import { useCitas } from '../../../hooks/useCitas';
+import { doctorService } from '../../../services/api';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import {
@@ -11,52 +16,101 @@ import {
 } from '../../components/ui/card';
 
 export default function DoctorDashboard() {
-  const todayAppointments = [
-    {
-      id: 1,
-      patient: 'Juan Pérez García',
-      time: '09:00',
-      specialty: 'Cardiología',
-      status: 'completed',
-      hasAccess: false,
-    },
-    {
-      id: 2,
-      patient: 'María López Sánchez',
-      time: '10:00',
-      specialty: 'Cardiología',
-      status: 'in-progress',
-      hasAccess: true,
-    },
-    {
-      id: 3,
-      patient: 'Carlos Rodríguez',
-      time: '11:00',
-      specialty: 'Cardiología',
-      status: 'pending',
-      hasAccess: false,
-    },
-    {
-      id: 4,
-      patient: 'Ana Martínez',
-      time: '14:00',
-      specialty: 'Cardiología',
-      status: 'pending',
-      hasAccess: false,
-    },
-  ];
+  const { user } = useAuth();
+  const { useCitasDoctor } = useCitas();
+
+  const [statsData, setStatsData] = useState({
+    citasHoy: 0,
+    citasCompletadas: 0,
+    pacientesUnicos: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  // Local state to simulate starting / completing consultations in the UI
+  const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({});
+
+  const todayString = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const { data: appointments, isLoading: isLoadingAppointments } = useCitasDoctor(
+    user?.id || '',
+    todayString,
+  );
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoadingStats(true);
+        const res = await doctorService.getDashboardStats();
+        if (res) {
+          const stats = res as unknown as {
+            citasHoy?: number;
+            citasCompletadas?: number;
+            pacientesUnicos?: number;
+          };
+          setStatsData({
+            citasHoy: stats.citasHoy || 0,
+            citasCompletadas: stats.citasCompletadas || 0,
+            pacientesUnicos: stats.pacientesUnicos || 0,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching doctor stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    if (user?.id) {
+      fetchStats();
+    }
+  }, [user?.id]);
+
+  const handleStartConsultation = (appointmentId: string, patientName: string) => {
+    setLocalStatuses((prev) => ({ ...prev, [appointmentId]: 'in-progress' }));
+    toast.success(`Consulta iniciada para ${patientName}. Acceso al historial médico habilitado.`);
+  };
+
+  const handleFinishConsultation = (appointmentId: string, patientName: string) => {
+    setLocalStatuses((prev) => ({ ...prev, [appointmentId]: 'completed' }));
+    toast.success(`Consulta finalizada para ${patientName}. Historial cerrado.`);
+    // Update stats locally
+    setStatsData((prev) => ({
+      ...prev,
+      citasCompletadas: prev.citasCompletadas + 1,
+    }));
+  };
 
   const stats = [
-    { label: 'Citas Hoy', value: '4', icon: Calendar, color: 'text-blue-600' },
-    { label: 'Total Pacientes', value: '127', icon: Users, color: 'text-green-600' },
-    { label: 'Completadas', value: '1', icon: CheckCircle, color: 'text-purple-600' },
+    {
+      label: 'Citas Hoy',
+      value: statsData.citasHoy.toString(),
+      icon: Calendar,
+      color: 'text-blue-600',
+    },
+    {
+      label: 'Total Pacientes',
+      value: statsData.pacientesUnicos.toString(),
+      icon: Users,
+      color: 'text-green-600',
+    },
+    {
+      label: 'Completadas',
+      value: statsData.citasCompletadas.toString(),
+      icon: CheckCircle,
+      color: 'text-purple-600',
+    },
   ];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             Completada
           </Badge>
         );
@@ -68,18 +122,32 @@ export default function DoctorDashboard() {
         );
       case 'pending':
         return <Badge variant="secondary">Pendiente</Badge>;
+      case 'confirmed':
+        return (
+          <Badge variant="default" className="bg-blue-50 text-blue-700 border-blue-200">
+            Confirmada
+          </Badge>
+        );
+      case 'cancelled':
+        return <Badge variant="destructive">Cancelada</Badge>;
       case 'absent':
         return <Badge variant="destructive">Ausente</Badge>;
       default:
-        return null;
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
+
+  // Resolve current active consultation for history access panel
+  const activeConsultation = useMemo(() => {
+    if (!appointments) return null;
+    return appointments.find((app) => localStatuses[app.id] === 'in-progress');
+  }, [appointments, localStatuses]);
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Panel del Médico</h2>
-        <p className="text-gray-600">Dr. Carlos Mendoza - Cardiología</p>
+        <p className="text-gray-600">{user?.name || 'Dr. Médico'}</p>
       </div>
 
       {/* Stats */}
@@ -92,7 +160,9 @@ export default function DoctorDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">{stat.label}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">
+                      {loadingStats ? '...' : stat.value}
+                    </p>
                   </div>
                   <Icon className={`w-10 h-10 ${stat.color}`} />
                 </div>
@@ -118,46 +188,68 @@ export default function DoctorDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {todayAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="p-4 border rounded-lg hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Clock className="w-4 h-4 text-gray-600" />
-                        <span className="font-semibold text-gray-900">{appointment.time} hrs</span>
-                        {getStatusBadge(appointment.status)}
-                      </div>
-                      <h4 className="font-medium text-gray-900">{appointment.patient}</h4>
-                      <p className="text-sm text-gray-600">{appointment.specialty}</p>
-                    </div>
-                  </div>
-
-                  {appointment.status === 'in-progress' && appointment.hasAccess && (
-                    <div className="mt-3 flex gap-2">
-                      <Link to={`/doctor/patient-history/${appointment.id}`}>
-                        <Button size="sm">
-                          <FileText className="w-4 h-4 mr-2" />
-                          Ver Historial
-                        </Button>
-                      </Link>
-                      <Button size="sm" variant="outline">
-                        Finalizar Consulta
-                      </Button>
-                    </div>
-                  )}
-
-                  {appointment.status === 'pending' && (
-                    <div className="mt-3">
-                      <Button size="sm" variant="outline">
-                        Iniciar Consulta
-                      </Button>
-                    </div>
-                  )}
+              {isLoadingAppointments ? (
+                <div className="text-center py-8 text-gray-500">Cargando agenda de hoy...</div>
+              ) : !appointments || appointments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No tienes citas programadas para hoy.
                 </div>
-              ))}
+              ) : (
+                appointments.map((appointment) => {
+                  const status = localStatuses[appointment.id] || appointment.status;
+                  const patientName = appointment.paciente_nombre || 'Paciente no identificado';
+                  return (
+                    <div
+                      key={appointment.id}
+                      className="p-4 border rounded-lg hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Clock className="w-4 h-4 text-gray-600" />
+                            <span className="font-semibold text-gray-900">
+                              {appointment.time} hrs
+                            </span>
+                            {getStatusBadge(status)}
+                          </div>
+                          <h4 className="font-medium text-gray-900">{patientName}</h4>
+                          <p className="text-sm text-gray-600">{appointment.specialty}</p>
+                        </div>
+                      </div>
+
+                      {status === 'in-progress' && (
+                        <div className="mt-3 flex gap-2">
+                          <Link to={`/doctor/patient-history/${appointment.id}`}>
+                            <Button size="sm">
+                              <FileText className="w-4 h-4 mr-2" />
+                              Ver Historial
+                            </Button>
+                          </Link>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleFinishConsultation(appointment.id, patientName)}
+                          >
+                            Finalizar Consulta
+                          </Button>
+                        </div>
+                      )}
+
+                      {(status === 'pending' || status === 'confirmed') && (
+                        <div className="mt-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleStartConsultation(appointment.id, patientName)}
+                          >
+                            Iniciar Consulta
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </CardContent>
           </Card>
         </div>
@@ -171,11 +263,17 @@ export default function DoctorDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm font-medium text-green-900 mb-1">Acceso Activo</p>
-                  <p className="text-xs text-green-700">María López Sánchez</p>
-                  <p className="text-xs text-green-600 mt-1">Expira al finalizar la consulta</p>
-                </div>
+                {activeConsultation ? (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm font-medium text-green-900 mb-1">Acceso Activo</p>
+                    <p className="text-xs text-green-700">{activeConsultation.paciente_nombre}</p>
+                    <p className="text-xs text-green-600 mt-1">Expira al finalizar la consulta</p>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                    <p className="text-xs text-gray-500">Ninguna consulta activa en este momento</p>
+                  </div>
+                )}
                 <div className="text-xs text-gray-600 space-y-1">
                   <p>• El acceso se otorga automáticamente al iniciar la consulta</p>
                   <p>• JWT válido solo durante el horario de la cita</p>

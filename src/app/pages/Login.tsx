@@ -16,8 +16,12 @@ import {
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 
-export const getFrontendRole = (userObj: any): 'patient' | 'doctor' | 'admin' => {
-  const rawRole = userObj.role || userObj.rol || (userObj.roles && userObj.roles[0]) || 'patient';
+export const getFrontendRole = (userObj: {
+  role?: string;
+  rol?: string;
+  roles?: string[];
+}): 'patient' | 'doctor' | 'admin' => {
+  const rawRole = userObj.role || userObj.rol || userObj.roles?.[0] || 'patient';
 
   const normalized = String(rawRole).toLowerCase();
 
@@ -57,14 +61,14 @@ export default function Login() {
         throw new Error(response.message || 'Credenciales incorrectas');
       }
 
-      const responseData = (response as any).data || response;
-      const token = responseData.accessToken || responseData.token || 'real-jwt-token';
-      const refreshToken = responseData.refreshToken || responseData.refreshToken;
-      const user = responseData.user || responseData;
+      const responseData = (response.data || response) as Record<string, unknown>;
+      const token = (responseData.accessToken || responseData.token || 'real-jwt-token') as string;
+      const refreshToken = responseData.refreshToken as string | undefined;
+      const user = (responseData.user || responseData) as Record<string, unknown>;
 
-      const userRole = getFrontendRole(user);
-      const userName = user.name || user.nombre || user.fullName || email.split('@')[0];
-      const userId = user.id || user.usuario_id || user.uid;
+      const userRole = getFrontendRole(user as { role?: string; rol?: string; roles?: string[] });
+      const userName = (user.name || user.nombre || user.fullName || email.split('@')[0]) as string;
+      const userId = (user.id || user.usuario_id || user.uid) as string;
 
       const userToSave = {
         id: userId,
@@ -79,14 +83,17 @@ export default function Login() {
       localStorage.setItem('currentUser', JSON.stringify(userToSave));
       login(token, userToSave);
 
-      toast.success('¡Bienvenido/a ' + userName + '!');
+      toast.success(`¡Bienvenido/a ${userName}!`);
 
       setTimeout(() => {
-        navigate('/' + userRole);
+        navigate(`/${userRole}`);
       }, 500);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login error:', error);
-      toast.error(error.message || 'Error al iniciar sesión. Revisa tus credenciales.');
+      toast.error(
+        (error as { message?: string })?.message ||
+          'Error al iniciar sesión. Revisa tus credenciales.',
+      );
       setLoading(false);
     }
   };

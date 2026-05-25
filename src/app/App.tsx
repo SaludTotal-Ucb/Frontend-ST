@@ -1,19 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AlertCircle } from 'lucide-react';
-import { ErrorBoundary } from 'react-error-boundary';
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { RouterProvider } from 'react-router';
 import { Toaster } from './components/ui/sonner';
 import { router } from './routes';
 
 const queryClient = new QueryClient();
 
-const GlobalErrorFallback = ({
-  error,
-  resetErrorBoundary,
-}: {
-  error: Error;
-  resetErrorBoundary: () => void;
-}) => {
+const GlobalErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">
       <div className="p-8 bg-white rounded-lg shadow-md max-w-md w-full text-center space-y-4 border-t-4 border-red-500">
@@ -23,7 +19,7 @@ const GlobalErrorFallback = ({
           La aplicación encontró un error inesperado y no pudo continuar.
         </p>
         <div className="bg-red-50 p-4 rounded text-left overflow-auto mt-4">
-          <p className="text-sm text-red-800 font-mono break-words">{error.message}</p>
+          <p className="text-sm text-red-800 font-mono break-words">{errorMessage}</p>
         </div>
         <button
           onClick={resetErrorBoundary}

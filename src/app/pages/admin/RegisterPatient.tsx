@@ -45,8 +45,7 @@ export default function RegisterPatient() {
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-
-    // Check if is minor based on birth date
+    //revisa si es menor de edad
     if (field === 'birthDate' && value) {
       const birthDate = new Date(value);
       const today = new Date();

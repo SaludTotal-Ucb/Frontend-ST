@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useEffect, useState } from 'react';
+import { createContext, type ReactNode, useState } from 'react';
 
 interface User {
   id: string;
@@ -18,7 +18,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('user');
-    const currentUser = localStorage.getItem('currentUser'); // Para compatibilidad con el mock anterior
+    const currentUser = localStorage.getItem('currentUser');
     if (savedUser) {
       try {
         return JSON.parse(savedUser);
