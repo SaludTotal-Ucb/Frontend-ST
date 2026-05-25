@@ -2,6 +2,7 @@ import { ArrowLeft, Info } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { authService } from '../../../services/api';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import {
@@ -24,6 +25,7 @@ import {
 export default function RegisterPatient() {
   const navigate = useNavigate();
   const [isMinor, setIsMinor] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     ci: '',
@@ -54,7 +56,7 @@ export default function RegisterPatient() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
@@ -72,8 +74,27 @@ export default function RegisterPatient() {
       return;
     }
 
-    toast.success('Paciente registrado exitosamente');
-    setTimeout(() => navigate('/admin'), 1500);
+    setLoading(true);
+    try {
+      const response = await authService.register(
+        formData.fullName,
+        formData.email,
+        formData.password,
+        formData.ci,
+        formData.phone,
+      );
+
+      if (response.success) {
+        toast.success('Paciente registrado exitosamente');
+        setTimeout(() => navigate('/admin'), 1500);
+      } else {
+        toast.error(response.message || 'Error al registrar al paciente');
+      }
+    } catch (error) {
+      toast.error((error as { message?: string })?.message || 'Error al registrar al paciente');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -317,11 +338,12 @@ export default function RegisterPatient() {
                 variant="outline"
                 onClick={() => navigate('/admin')}
                 className="flex-1"
+                disabled={loading}
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="flex-1">
-                Registrar Paciente
+              <Button type="submit" className="flex-1" disabled={loading}>
+                {loading ? 'Registrando...' : 'Registrar Paciente'}
               </Button>
             </div>
           </CardContent>
