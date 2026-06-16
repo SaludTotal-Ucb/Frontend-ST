@@ -51,19 +51,30 @@ La infraestructura se despliega en **AWS Learner Lab**, utilizando un clúster l
 
 ---
 
-## 3. Registro de Decisiones de Arquitectura (ADR)
+### 3. Registro de Decisiones de Arquitectura (ADR)
 
-### ADR-001: Uso de K3s autohospedado en EC2
-- **Estatus:** Aceptado.
-- **Contexto:** Las restricciones de AWS Learner Lab impiden el uso de Amazon EKS debido a la falta de permisos de IAM para crear roles de clúster y el alto costo base por hora.
-- **Decisión:** Implementar **K3s** sobre una instancia EC2 t3.medium.
-- **Consecuencias:** Se reduce el consumo de memoria y CPU comparado con K8s estándar, manteniéndose dentro del presupuesto de $50 USD. Requiere gestión manual de la instancia.
+#### ADR-001: Uso de K3s autohospedado en EC2 en lugar de Amazon EKS
+* **Fecha:** 2026-06-16
+* **Estado:** Aceptada
+* **Contexto y Problema:** El entorno de AWS Academy Learner Lab prohíbe explícitamente la creación de nuevos roles IAM, lo cual es un requisito estricto para desplegar un clúster administrado con Amazon EKS. Además, el costo fijo por hora de EKS consumiría rápidamente el límite estricto de $50 USD del laboratorio.
+* **Opciones Consideradas:** 1. Amazon EKS (Servicio administrado por AWS).
+  2. K3s (Distribución ligera de Kubernetes) sobre una instancia EC2.
+* **Decisión Tomada:** Implementar la **Opción 2** (K3s sobre instancia EC2 `t3.medium`).
+* **Justificación:** K3s permite empaquetar, orquestar y escalar los contenedores de la aplicación "Salud Total" operando de forma nativa bajo el `LabInstanceProfile` preexistente. Esto evade las trabas administrativas de IAM, garantiza compatibilidad total con los manifiestos de Kubernetes (Deployment, Service, HPA) exigidos en la rúbrica, y mantiene el costo operativo alrededor de los $15 USD mensuales.
+* **Consecuencias Positivas:** Control total del clúster, optimización extrema de costos y cumplimiento técnico del Pilar 1 sin violar políticas del Learner Lab.
+* **Consecuencias Negativas:** Se asume la gestión manual del clúster y la carencia de alta disponibilidad nativa al operar en un esquema *Single-Node*.
 
-### ADR-002: Desacoplamiento de Base de Datos con AWS RDS
-- **Estatus:** Aceptado.
-- **Contexto:** Mantener PostgreSQL dentro del clúster K3s en una sola instancia EC2 aumenta el riesgo de pérdida de datos y consumo excesivo de recursos locales.
-- **Decisión:** Utilizar **AWS RDS PostgreSQL** externo al clúster de cómputo.
-- **Consecuencias:** Mayor resiliencia, backups automáticos y liberación de recursos en la instancia EC2 para los contenedores de aplicación.
+#### ADR-002: Desacoplamiento de Base de Datos utilizando Supabase (BaaS) en lugar de AWS RDS
+* **Fecha:** 2026-06-16
+* **Estado:** Aceptada
+* **Contexto y Problema:** Desplegar una base de datos transaccional dentro de los pods de Kubernetes (como un contenedor volátil) representa un riesgo crítico de pérdida de datos médicos. Por otro lado, aprovisionar un clúster de AWS RDS PostgreSQL sumaría costos adicionales que pondrían en riesgo el límite de presupuesto mensual del Learner Lab.
+* **Opciones Consideradas:** 1. Base de datos PostgreSQL contenerizada en K3s con PersistentVolumes.
+  2. AWS RDS for PostgreSQL.
+  3. Supabase (PostgreSQL administrado como servicio - BaaS).
+* **Decisión Tomada:** Implementar la **Opción 3** (Supabase).
+* **Justificación:** Adoptar Supabase permite mantener la capa de persistencia 100% desacoplada de la capa de cómputo (cumpliendo el nivel Excelente del Pilar 1) sin consumir recursos de cómputo del servidor EC2 ni presupuesto de AWS. Supabase ofrece PostgreSQL administrado en la nube con un *free tier* generoso que soporta holgadamente la carga de la aplicación médica, aislando los datos de manera segura fuera de la instancia de EC2.
+* **Consecuencias Positivas:** Ahorro total del presupuesto de base de datos en AWS, inyección directa de variables de entorno mediante secretos (`DATABASE_URL`), y alta disponibilidad de los datos.
+* **Consecuencias Negativas:** Dependencia de red hacia un proveedor externo (Supabase) ajeno a la VPC de AWS.
 
 ---
 
@@ -71,7 +82,7 @@ La infraestructura se despliega en **AWS Learner Lab**, utilizando un clúster l
 
 ### Paso 1: Acceso a la Infraestructura
 ```bash
-ssh -i "tu-llave.pem" ubuntu@<IP-PUBLICA-EC2>
+ssh -i "tu-llave.pem" ubuntu@<98.93.36.3>
 ```
 
 ### Paso 2: Instalación de K3s (Si no existe)
