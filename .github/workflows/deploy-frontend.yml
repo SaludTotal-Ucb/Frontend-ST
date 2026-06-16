@@ -1,0 +1,48 @@
+name: Deploy Frontend to Kubernetes
+
+on:
+  workflow_dispatch:
+    inputs:
+      AWS_ACCESS_KEY_ID:
+        description: 'AWS Access Key ID'
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        description: 'AWS Secret Access Key'
+        required: true
+      AWS_SESSION_TOKEN:
+        description: 'AWS Session Token'
+        required: true
+      DOCKER_IMAGE_TAG:
+        description: 'Tag for the Docker image (e.g., latest)'
+        required: true
+        default: 'latest'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ github.event.inputs.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ github.event.inputs.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ github.event.inputs.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1 # Adjust as needed
+
+      # If using EKS, you would run:
+      # - name: Update Kubeconfig
+      #   run: aws eks update-kubeconfig --name your-cluster-name
+
+      # For generic K8s or EC2 instances, you might need to provide the KUBECONFIG as a secret
+      # or use SSH to apply the changes.
+      
+      - name: Deploy to Kubernetes
+        run: |
+          # Replace image tag in deployment file
+          sed -i "s|image: .*/saludtotal-frontend:.*|image: your-docker-hub-username/saludtotal-frontend:${{ github.event.inputs.DOCKER_IMAGE_TAG }}|g" k8s/frontend-deployment.yaml
+          
+          # Apply Kubernetes configurations
+          kubectl apply -f k8s/
