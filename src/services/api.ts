@@ -260,6 +260,8 @@ export const adminService = {
       method: 'POST',
       body: data,
     }),
+
+  getPacientes: async () => apiCall<unknown[]>('/admin/pacientes'),
 };
 
 export default apiCall;

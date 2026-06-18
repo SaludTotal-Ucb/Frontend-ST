@@ -13,6 +13,7 @@ export interface Cita {
   time: string;
   status: 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'absent';
   paciente_nombre?: string;
+  paciente_ci?: string;
 }
 
 type CitaApi = {
@@ -25,6 +26,7 @@ type CitaApi = {
   hora: string;
   estado: 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'absent';
   paciente_nombre?: string;
+  paciente_ci?: string;
 };
 //mapeo para la api(back citas)
 const mapCitaApiToUi = (cita: CitaApi): Cita => {
@@ -54,6 +56,7 @@ const mapCitaApiToUi = (cita: CitaApi): Cita => {
     time: cita.hora,
     status: mappedStatus,
     paciente_nombre: cita.paciente_nombre,
+    paciente_ci: cita.paciente_ci,
   };
 };
 
