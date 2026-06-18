@@ -219,7 +219,7 @@ export default function DoctorDashboard() {
 
                       {status === 'in-progress' && (
                         <div className="mt-3 flex gap-2">
-                          <Link to={`/doctor/patient-history/${appointment.id}`}>
+                          <Link to={`/doctor/patient-history/${appointment.paciente_id}`}>
                             <Button size="sm">
                               <FileText className="w-4 h-4 mr-2" />
                               Ver Historial

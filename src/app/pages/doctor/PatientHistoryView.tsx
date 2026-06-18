@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   ArrowLeft,
@@ -13,6 +14,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { useAuth } from '../../../hooks/useAuth';
+import { useCitas } from '../../../hooks/useCitas';
 import { api } from '../../../services/api';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Badge } from '../../components/ui/badge';
@@ -30,6 +32,11 @@ export default function PatientHistoryView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { useHistorialPaciente, usePerfilPaciente } = useCitas();
+  const queryClient = useQueryClient();
+
+  const { data: realHistorial } = useHistorialPaciente(id || '');
+  const { data: realPerfil } = usePerfilPaciente(id || '');
 
   const [isConsultationActive, setIsConsultationActive] = useState(true);
   const [motivo, setMotivo] = useState('');
@@ -70,6 +77,8 @@ export default function PatientHistoryView() {
       };
 
       await api.post('/historial', payloadHistorial);
+      queryClient.invalidateQueries({ queryKey: ['historial', 'paciente', id] });
+      queryClient.invalidateQueries({ queryKey: ['perfil', 'paciente', id] });
 
       toast.success('Consulta y diagnóstico guardados en el historial del paciente');
       handleFinishConsultation();
@@ -81,7 +90,7 @@ export default function PatientHistoryView() {
     }
   };
 
-  const patientInfo = {
+  const patientInfo = realPerfil || {
     name: 'María López Sánchez',
     ci: '23456789',
     age: 45,
@@ -91,40 +100,71 @@ export default function PatientHistoryView() {
     email: 'maria.lopez@email.com',
   };
 
-  const medicalRecords = [
-    {
-      id: 1,
-      type: 'consultation',
-      title: 'Consulta Cardiológica',
-      date: '2025-12-15',
-      doctor: 'Dr. Carlos Mendoza',
-      diagnosis: 'Hipertensión arterial leve',
-      notes: 'Control de presión arterial. Se recomienda dieta baja en sodio y ejercicio regular.',
-    },
-    {
-      id: 2,
-      type: 'study',
-      title: 'Electrocardiograma',
-      date: '2025-12-15',
-      doctor: 'Dr. Carlos Mendoza',
-      diagnosis: 'Ritmo sinusal normal',
-      notes: 'Estudio complementario sin alteraciones significativas.',
-    },
-    {
-      id: 3,
-      type: 'consultation',
-      title: 'Medicina General',
-      date: '2025-10-20',
-      doctor: 'Dr. Juan Pérez',
-      diagnosis: 'Gripe común',
-      notes: 'Cuadro viral respiratorio. Tratamiento sintomático por 7 días.',
-    },
-  ];
+  const mapHistorialToRecords = (items: any[]): any[] => {
+    const mapped: any[] = [];
 
-  const currentMedications = [
-    { name: 'Enalapril 10mg', dosage: '1 tableta cada 12 horas', duration: 'Continuo' },
-    { name: 'Aspirina 100mg', dosage: '1 tableta al día', duration: 'Continuo' },
-  ];
+    for (const item of items || []) {
+      const dateValue = item.fecha || item.created_at || '';
+      const consultationDescription = [item.descripcion, item.tratamiento]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+
+      mapped.push({
+        id: item.id,
+        type: 'consultation',
+        title: item.diagnostico || 'Consulta Médica',
+        doctor: item.medico_encargado || 'Médico no especificado',
+        specialty: 'Consulta General',
+        date: dateValue,
+        clinic: 'Centro de Salud',
+        description: consultationDescription || 'Sin detalles registrados.',
+      });
+
+      (item.recetas || []).forEach((receta: any, index: number) => {
+        const detalle = [
+          receta.dosis ? `Dosis: ${receta.dosis}` : '',
+          receta.frecuencia ? `Frecuencia: ${receta.frecuencia}` : '',
+          receta.indicaciones ? `Indicaciones: ${receta.indicaciones}` : '',
+        ]
+          .filter(Boolean)
+          .join(' | ');
+
+        mapped.push({
+          id: `${item.id}-rx-${index}`,
+          type: 'prescription',
+          title: `Receta: ${receta.medicamento || 'Medicamento'}`,
+          doctor: item.medico_encargado || 'Médico no especificado',
+          specialty: 'Receta Médica',
+          date: dateValue,
+          clinic: 'Centro de Salud',
+          description: detalle || 'Sin detalles de receta.',
+        });
+      });
+    }
+
+    return mapped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+
+  const medicalRecords = realHistorial ? mapHistorialToRecords(realHistorial as any[]) : [];
+
+  const realMedications = realHistorial
+    ? (realHistorial as any[]).flatMap((item) =>
+        (item.recetas || []).map((r: any) => ({
+          name: r.medicamento || 'Medicamento',
+          dosage: `${r.dosis || ''} ${r.frecuencia || ''}`.trim() || 'No especificada',
+          duration: r.indicaciones || 'Indicaciones médicas',
+        })),
+      )
+    : [];
+
+  const currentMedications =
+    realMedications.length > 0
+      ? realMedications
+      : [
+          { name: 'Enalapril 10mg', dosage: '1 tableta cada 12 horas', duration: 'Continuo' },
+          { name: 'Aspirina 100mg', dosage: '1 tableta al día', duration: 'Continuo' },
+        ];
 
   return (
     <div className="space-y-6">
