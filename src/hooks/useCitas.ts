@@ -149,6 +149,33 @@ export const useCitas = () => {
     },
   });
 
+  // actualizar perfil
+  const actualizarPerfilMutation = useMutation({
+    mutationFn: async (payload: {
+      name: string;
+      phone: string;
+      bloodType: string;
+      allergies: string;
+      address: string;
+      birthDate: string;
+      gender: string;
+      emergencyContact: string;
+    }) => {
+      const { data } = await api.put<any>('/historial/profile', payload);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['perfil', 'paciente'] });
+
+      // Sincronizar localStorage
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      currentUser.name = variables.name;
+      currentUser.phone = variables.phone;
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      localStorage.setItem('user', JSON.stringify(currentUser));
+    },
+  });
+
   return {
     useCitasPaciente,
     useHistorialPaciente,
@@ -156,5 +183,6 @@ export const useCitas = () => {
     useCitasDoctor,
     agendarCitaMutation,
     cancelarCitaMutation,
+    actualizarPerfilMutation,
   };
 };

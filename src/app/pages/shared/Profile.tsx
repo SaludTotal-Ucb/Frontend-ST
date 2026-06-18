@@ -1,7 +1,12 @@
-import { Calendar, Edit, User } from 'lucide-react';
+import { Calendar, Edit, Save, User, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { useCitas } from '../../../hooks/useCitas';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 
 interface ProfileProps {
   role: 'patient' | 'doctor' | 'admin';
@@ -9,42 +14,54 @@ interface ProfileProps {
 
 export default function Profile({ role }: ProfileProps) {
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const patientId = currentUser.id || '';
 
-  // Datos simulados del perfil
+  const { usePerfilPaciente, useHistorialPaciente, actualizarPerfilMutation } = useCitas();
+
+  // Queries reactivas
+  const { data: realPerfil, isLoading: isLoadingPerfil } = usePerfilPaciente(
+    role === 'patient' ? patientId : '',
+  );
+  const { data: realHistorial } = useHistorialPaciente(role === 'patient' ? patientId : '');
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    birthDate: '',
+    gender: '',
+    bloodType: '',
+    emergencyContact: '',
+    address: '',
+  });
+
+  // Inicializar el formulario cuando cargue el perfil real
+  useEffect(() => {
+    if (realPerfil) {
+      setFormData({
+        name: realPerfil.name || '',
+        phone: realPerfil.phone || '',
+        birthDate: realPerfil.birthDate || '',
+        gender: realPerfil.gender || '',
+        bloodType: realPerfil.bloodType || '',
+        emergencyContact: realPerfil.emergencyContact || '',
+        address: realPerfil.address || '',
+      });
+    }
+  }, [realPerfil]);
+
+  // Datos simulados o de fallback para otros roles
   const profileData = {
     patient: {
-      name: currentUser.name || 'Ana García Pérez',
-      email: currentUser.email || 'paciente@hospital.com',
-      ci: '12345678',
-      phone: '70123456',
-      birthDate: '15/05/1990',
-      gender: 'Femenino',
-      bloodType: 'O+',
-      address: 'Av. 6 de Agosto #1234, La Paz',
-      emergencyContact: 'Juan García - 71234567',
-      medicalHistory: [
-        {
-          date: '15/03/2026',
-          doctor: 'Dr. Carlos Méndez',
-          specialty: 'Cardiología',
-          diagnosis: 'Hipertensión arterial controlada',
-          treatment: 'Enalapril 10mg',
-        },
-        {
-          date: '10/02/2026',
-          doctor: 'Dra. María López',
-          specialty: 'Medicina General',
-          diagnosis: 'Gripe común',
-          treatment: 'Paracetamol, reposo',
-        },
-        {
-          date: '20/01/2026',
-          doctor: 'Dr. Pedro Ramírez',
-          specialty: 'Traumatología',
-          diagnosis: 'Esguince leve tobillo derecho',
-          treatment: 'Antiinflamatorios, fisioterapia',
-        },
-      ],
+      name: realPerfil?.name || currentUser.name || 'Ana García Pérez',
+      email: realPerfil?.email || currentUser.email || 'paciente@hospital.com',
+      ci: realPerfil?.ci || '12345678',
+      phone: realPerfil?.phone || '70123456',
+      birthDate: realPerfil?.birthDate || '15/05/1990',
+      gender: realPerfil?.gender || 'Femenino',
+      bloodType: realPerfil?.bloodType || 'O+',
+      address: realPerfil?.address || 'Av. 6 de Agosto #1234, La Paz',
+      emergencyContact: realPerfil?.emergencyContact || 'Juan García - 71234567',
     },
     doctor: {
       name: currentUser.name || 'Dr. Carlos Méndez',
@@ -68,8 +85,76 @@ export default function Profile({ role }: ProfileProps) {
     },
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: Temporary bypass for mock data types
   const data = profileData[role] as any;
+
+  const handleStartEdit = () => {
+    if (realPerfil) {
+      setFormData({
+        name: realPerfil.name || '',
+        phone: realPerfil.phone || '',
+        birthDate: realPerfil.birthDate || '',
+        gender: realPerfil.gender || '',
+        bloodType: realPerfil.bloodType || '',
+        emergencyContact: realPerfil.emergencyContact || '',
+        address: realPerfil.address || '',
+      });
+    } else {
+      // Si no hay perfil cargado, usar el mock
+      setFormData({
+        name: data.name,
+        phone: data.phone,
+        birthDate: data.birthDate,
+        gender: data.gender,
+        bloodType: data.bloodType,
+        emergencyContact: data.emergencyContact,
+        address: data.address,
+      });
+    }
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.name) {
+      toast.error('El nombre completo es obligatorio.');
+      return;
+    }
+
+    actualizarPerfilMutation.mutate(formData, {
+      onSuccess: () => {
+        toast.success('Perfil actualizado correctamente.');
+        setIsEditing(false);
+      },
+      onError: (error) => {
+        console.error(error);
+        toast.error('Ocurrió un error al guardar los cambios en el servidor.');
+      },
+    });
+  };
+
+  const mapHistorialToRecords = (items: any[]): any[] => {
+    const mapped: any[] = [];
+    for (const item of items || []) {
+      const dateValue = item.fecha || item.created_at || '';
+      mapped.push({
+        date: dateValue ? new Date(dateValue).toLocaleDateString('es-ES') : 'Sin fecha',
+        doctor: item.medico_encargado || 'Médico no especificado',
+        specialty: 'Consulta General',
+        diagnosis: item.diagnostico || 'Consulta Médica',
+        treatment: item.tratamiento || 'Sin tratamiento registrado',
+      });
+    }
+    return mapped;
+  };
+
+  const medicalHistory = realHistorial ? mapHistorialToRecords(realHistorial as any[]) : [];
+
+  if (role === 'patient' && isLoadingPerfil) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-gray-500 animate-pulse">Cargando perfil del paciente...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -78,10 +163,34 @@ export default function Profile({ role }: ProfileProps) {
           <h1 className="text-2xl font-bold text-gray-900">Mi Perfil</h1>
           <p className="text-gray-600 mt-1">Información personal y configuración</p>
         </div>
-        <Button className="w-full sm:w-auto">
-          <Edit className="w-4 h-4 mr-2" />
-          Editar Perfil
-        </Button>
+        {role === 'patient' && (
+          <div className="flex gap-2 w-full sm:w-auto">
+            {isEditing ? (
+              <>
+                <Button
+                  onClick={handleSave}
+                  className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar
+                </Button>
+                <Button
+                  onClick={() => setIsEditing(false)}
+                  variant="outline"
+                  className="flex-1 sm:flex-none"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancelar
+                </Button>
+              </>
+            ) : (
+              <Button onClick={handleStartEdit} className="w-full sm:w-auto">
+                <Edit className="w-4 h-4 mr-2" />
+                Editar Perfil
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Información Personal */}
@@ -104,47 +213,129 @@ export default function Profile({ role }: ProfileProps) {
             {/* Datos */}
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Nombre Completo</label>
-                <p className="text-gray-900 mt-1">{data.name}</p>
+                <Label htmlFor="prof-name" className="text-sm font-medium text-gray-500">
+                  Nombre Completo
+                </Label>
+                {isEditing ? (
+                  <Input
+                    id="prof-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-gray-900 mt-1">{data.name}</p>
+                )}
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Carnet de Identidad</label>
+                <Label className="text-sm font-medium text-gray-500">Carnet de Identidad</Label>
                 <p className="text-gray-900 mt-1">{data.ci}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Correo Electrónico</label>
+                <Label className="text-sm font-medium text-gray-500">Correo Electrónico</Label>
                 <p className="text-gray-900 mt-1">{data.email}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Teléfono</label>
-                <p className="text-gray-900 mt-1">{data.phone}</p>
+                <Label htmlFor="prof-phone" className="text-sm font-medium text-gray-500">
+                  Teléfono
+                </Label>
+                {isEditing ? (
+                  <Input
+                    id="prof-phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-gray-900 mt-1">{data.phone}</p>
+                )}
               </div>
 
               {role === 'patient' && (
                 <>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Fecha de Nacimiento</label>
-                    <p className="text-gray-900 mt-1">{data.birthDate}</p>
+                    <Label htmlFor="prof-birthDate" className="text-sm font-medium text-gray-500">
+                      Fecha de Nacimiento
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="prof-birthDate"
+                        value={formData.birthDate}
+                        onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                        placeholder="DD/MM/AAAA"
+                        className="mt-1"
+                      />
+                    ) : (
+                      <p className="text-gray-900 mt-1">{data.birthDate}</p>
+                    )}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Género</label>
-                    <p className="text-gray-900 mt-1">{data.gender}</p>
+                    <Label htmlFor="prof-gender" className="text-sm font-medium text-gray-500">
+                      Género
+                    </Label>
+                    {isEditing ? (
+                      <select
+                        id="prof-gender"
+                        value={formData.gender}
+                        onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                      >
+                        <option value="Femenino">Femenino</option>
+                        <option value="Masculino">Masculino</option>
+                        <option value="Otro">Otro</option>
+                      </select>
+                    ) : (
+                      <p className="text-gray-900 mt-1">{data.gender}</p>
+                    )}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Tipo de Sangre</label>
-                    <Badge variant="outline" className="mt-1">
-                      {data.bloodType}
-                    </Badge>
+                    <Label htmlFor="prof-bloodType" className="text-sm font-medium text-gray-500">
+                      Tipo de Sangre
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="prof-bloodType"
+                        value={formData.bloodType}
+                        onChange={(e) => setFormData({ ...formData, bloodType: e.target.value })}
+                        className="mt-1 w-24"
+                      />
+                    ) : (
+                      <div className="mt-1">
+                        <Badge variant="outline">{data.bloodType}</Badge>
+                      </div>
+                    )}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">
+                    <Label htmlFor="prof-emergency" className="text-sm font-medium text-gray-500">
                       Contacto de Emergencia
-                    </label>
-                    <p className="text-gray-900 mt-1">{data.emergencyContact}</p>
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="prof-emergency"
+                        value={formData.emergencyContact}
+                        onChange={(e) =>
+                          setFormData({ ...formData, emergencyContact: e.target.value })
+                        }
+                        className="mt-1"
+                      />
+                    ) : (
+                      <p className="text-gray-900 mt-1">{data.emergencyContact}</p>
+                    )}
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-sm font-medium text-gray-500">Dirección</label>
-                    <p className="text-gray-900 mt-1">{data.address}</p>
+                    <Label htmlFor="prof-address" className="text-sm font-medium text-gray-500">
+                      Dirección
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="prof-address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        className="mt-1"
+                      />
+                    ) : (
+                      <p className="text-gray-900 mt-1">{data.address}</p>
+                    )}
                   </div>
                 </>
               )}
@@ -186,7 +377,9 @@ export default function Profile({ role }: ProfileProps) {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Nivel de Acceso</label>
-                    <Badge className="mt-1">{data.accessLevel}</Badge>
+                    <div className="mt-1">
+                      <Badge>{data.accessLevel}</Badge>
+                    </div>
                   </div>
                 </>
               )}
@@ -208,28 +401,34 @@ export default function Profile({ role }: ProfileProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data.medicalHistory?.map((record: Record<string, string>, index: number) => (
-                <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-500">{record.date}</span>
+              {medicalHistory.length === 0 ? (
+                <p className="text-sm text-gray-500 py-4 text-center">
+                  Aún no hay registros en tu historial clínico.
+                </p>
+              ) : (
+                medicalHistory.slice(0, 3).map((record: Record<string, string>, index: number) => (
+                  <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-500">{record.date}</span>
+                        </div>
+                        <p className="font-medium text-gray-900">{record.diagnosis}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {record.doctor} - {record.specialty}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          <strong>Tratamiento:</strong> {record.treatment}
+                        </p>
                       </div>
-                      <p className="font-medium text-gray-900">{record.diagnosis}</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {record.doctor} - {record.specialty}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        <strong>Tratamiento:</strong> {record.treatment}
-                      </p>
+                      <Button variant="ghost" size="sm">
+                        Ver Detalles
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      Ver Detalles
-                    </Button>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
