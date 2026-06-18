@@ -98,6 +98,10 @@ export default function PatientHistoryView() {
     allergies: 'Penicilina',
     phone: '70123456',
     email: 'maria.lopez@email.com',
+    birthDate: '15/05/1981',
+    gender: 'Femenino',
+    address: 'Av. Principal #123',
+    emergencyContact: 'Juan García - 71234567',
   };
 
   const mapHistorialToRecords = (items: any[]): any[] => {
@@ -234,8 +238,16 @@ export default function PatientHistoryView() {
                   <p className="font-medium text-gray-900">{patientInfo.ci}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Edad</p>
-                  <p className="font-medium text-gray-900">{patientInfo.age} años</p>
+                  <p className="text-sm text-gray-600">Fecha de Nacimiento / Edad</p>
+                  <p className="font-medium text-gray-900">
+                    {patientInfo.birthDate || 'No especificada'} ({patientInfo.age} años)
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Género</p>
+                  <p className="font-medium text-gray-900">
+                    {patientInfo.gender || 'No especificado'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Tipo de Sangre</p>
@@ -249,9 +261,21 @@ export default function PatientHistoryView() {
                   <p className="text-sm text-gray-600">Teléfono</p>
                   <p className="font-medium text-gray-900">{patientInfo.phone}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-gray-600">Contacto de Emergencia</p>
+                  <p className="font-medium text-gray-900 text-sm">
+                    {patientInfo.emergencyContact || 'No especificado'}
+                  </p>
+                </div>
                 <div className="sm:col-span-2">
                   <p className="text-sm text-gray-600">Email</p>
                   <p className="font-medium text-gray-900">{patientInfo.email}</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-sm text-gray-600">Dirección</p>
+                  <p className="font-medium text-gray-900 text-sm">
+                    {patientInfo.address || 'No registrada'}
+                  </p>
                 </div>
               </div>
             </CardContent>
