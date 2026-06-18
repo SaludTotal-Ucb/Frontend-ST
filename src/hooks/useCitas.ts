@@ -4,6 +4,7 @@ import { api } from '../services/api';
 // interfaces cita
 export interface Cita {
   id: string;
+  paciente_id: string;
   specialty: string;
   doctor: string;
   clinic: string;
@@ -26,17 +27,35 @@ type CitaApi = {
   paciente_nombre?: string;
 };
 //mapeo para la api(back citas)
-const mapCitaApiToUi = (cita: CitaApi): Cita => ({
-  id: cita.id,
-  specialty: cita.especialidad,
-  doctor: cita.medico_id,
-  clinic: cita.clinica_id || 'Hospital Central',
-  address: '',
-  date: cita.fecha,
-  time: cita.hora,
-  status: cita.estado,
-  paciente_nombre: cita.paciente_nombre,
-});
+const mapCitaApiToUi = (cita: CitaApi): Cita => {
+  let mappedStatus: 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'absent' = 'pending';
+  const rawStatus = String(cita.estado).toLowerCase();
+
+  if (rawStatus === 'confirmada' || rawStatus === 'confirmed') {
+    mappedStatus = 'confirmed';
+  } else if (rawStatus === 'pendiente' || rawStatus === 'pending') {
+    mappedStatus = 'pending';
+  } else if (rawStatus === 'completada' || rawStatus === 'completed') {
+    mappedStatus = 'completed';
+  } else if (rawStatus === 'cancelada' || rawStatus === 'cancelled') {
+    mappedStatus = 'cancelled';
+  } else if (rawStatus === 'ausente' || rawStatus === 'absent') {
+    mappedStatus = 'absent';
+  }
+
+  return {
+    id: cita.id,
+    paciente_id: cita.paciente_id,
+    specialty: cita.especialidad,
+    doctor: cita.medico_id,
+    clinic: cita.clinica_id || 'Hospital Central',
+    address: '',
+    date: cita.fecha,
+    time: cita.hora,
+    status: mappedStatus,
+    paciente_nombre: cita.paciente_nombre,
+  };
+};
 
 export const useCitas = () => {
   const queryClient = useQueryClient();
@@ -60,6 +79,18 @@ export const useCitas = () => {
       queryFn: async () => {
         // Llama a GET /api/v1/historial/paciente/:id
         const { data } = await api.get<unknown>(`/historial/paciente/${pacienteId}`);
+        return data;
+      },
+      enabled: !!pacienteId,
+    });
+
+  // perfil paciente para el doctor
+  const usePerfilPaciente = (pacienteId: string) =>
+    useQuery({
+      queryKey: ['perfil', 'paciente', pacienteId],
+      queryFn: async () => {
+        // Llama a GET /api/v1/historial/paciente/:id/perfil
+        const { data } = await api.get<any>(`/historial/paciente/${pacienteId}/perfil`);
         return data;
       },
       enabled: !!pacienteId,
@@ -121,6 +152,7 @@ export const useCitas = () => {
   return {
     useCitasPaciente,
     useHistorialPaciente,
+    usePerfilPaciente,
     useCitasDoctor,
     agendarCitaMutation,
     cancelarCitaMutation,
