@@ -33,7 +33,11 @@ export default function AllPatients() {
       try {
         setLoading(true);
         const res = await adminService.getPacientes();
-        setPatients((res || []) as PatientRecord[]);
+        if (res && res.success && res.data) {
+          setPatients(res.data as PatientRecord[]);
+        } else {
+          setPatients([]);
+        }
       } catch (error) {
         console.error('Error al obtener pacientes:', error);
       } finally {
@@ -46,10 +50,10 @@ export default function AllPatients() {
   const filteredPatients = patients.filter((pat) => {
     const term = searchTerm.toLowerCase();
     return (
-      pat.name.toLowerCase().includes(term) ||
-      pat.email.toLowerCase().includes(term) ||
-      pat.ci.includes(term) ||
-      pat.phone.includes(term)
+      (pat.name || '').toLowerCase().includes(term) ||
+      (pat.email || '').toLowerCase().includes(term) ||
+      (pat.ci || '').includes(term) ||
+      (pat.phone || '').includes(term)
     );
   });
 

@@ -36,7 +36,11 @@ export default function AllDoctors() {
       try {
         setLoading(true);
         const res = await adminService.getDoctores();
-        setDoctors((res || []) as DoctorRecord[]);
+        if (res && res.success && res.data) {
+          setDoctors(res.data as DoctorRecord[]);
+        } else {
+          setDoctors([]);
+        }
       } catch (error) {
         console.error('Error al obtener médicos:', error);
       } finally {
@@ -49,10 +53,10 @@ export default function AllDoctors() {
   const filteredDoctors = doctors.filter((doc) => {
     const term = searchTerm.toLowerCase();
     return (
-      doc.name.toLowerCase().includes(term) ||
-      doc.especialidad.toLowerCase().includes(term) ||
-      doc.clinicaNombre.toLowerCase().includes(term) ||
-      doc.ci.includes(term)
+      (doc.name || '').toLowerCase().includes(term) ||
+      (doc.especialidad || '').toLowerCase().includes(term) ||
+      (doc.clinicaNombre || '').toLowerCase().includes(term) ||
+      (doc.ci || '').includes(term)
     );
   });
 
