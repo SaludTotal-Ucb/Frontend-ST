@@ -34,6 +34,8 @@ interface DashboardData {
     medicos?: number;
     clinicas?: number;
     citasHoy?: number;
+    citasCompletadas?: number;
+    citasPendientes?: number;
   };
   recentActivity?: ActivityItem[];
   penalties?: PenaltyItem[];
@@ -108,6 +110,20 @@ export default function AdminDashboard() {
       color: 'text-orange-600',
       change: 'Hoy',
     },
+    {
+      label: 'Citas Realizadas',
+      value: data?.stats?.citasCompletadas?.toString() || '0',
+      icon: Calendar,
+      color: 'text-indigo-600',
+      change: 'Hechas',
+    },
+    {
+      label: 'Citas Pendientes',
+      value: data?.stats?.citasPendientes?.toString() || '0',
+      icon: Calendar,
+      color: 'text-yellow-600',
+      change: 'Pendientes',
+    },
   ];
 
   const recentActivity = data?.recentActivity || [];
@@ -166,7 +182,7 @@ export default function AdminDashboard() {
       ) : (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
             {stats.map((stat) => {
               const Icon = stat.icon;
               return (
@@ -177,7 +193,7 @@ export default function AdminDashboard() {
                       <Badge variant="secondary">{stat.change}</Badge>
                     </div>
                     <p className="text-sm text-gray-600">{stat.label}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
                   </CardContent>
                 </Card>
               );
@@ -210,10 +226,22 @@ export default function AdminDashboard() {
                     Registrar Clínica
                   </Button>
                 </Link>
-                <Link to="/admin/all-appointments">
+                <Link to="/admin/appointments">
                   <Button className="w-full justify-start" variant="outline">
                     <Calendar className="w-4 h-4 mr-2" />
                     Ver Todas las Citas
+                  </Button>
+                </Link>
+                <Link to="/admin/doctors">
+                  <Button className="w-full justify-start" variant="outline">
+                    <Stethoscope className="w-4 h-4 mr-2" />
+                    Ver Todos los Médicos
+                  </Button>
+                </Link>
+                <Link to="/admin/patients">
+                  <Button className="w-full justify-start" variant="outline">
+                    <Users className="w-4 h-4 mr-2" />
+                    Ver Todos los Pacientes
                   </Button>
                 </Link>
               </CardContent>
