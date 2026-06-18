@@ -68,7 +68,7 @@ api.interceptors.response.use(
 
       originalRequest._retry = true;
       isRefreshing = true;
-
+      //se guarda en el localstorage el token
       const localRefreshToken = localStorage.getItem('refreshToken');
       if (!localRefreshToken) {
         isRefreshing = false;
