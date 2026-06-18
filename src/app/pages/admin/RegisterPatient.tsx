@@ -76,12 +76,23 @@ export default function RegisterPatient() {
 
     setLoading(true);
     try {
+      const formattedEmergency = formData.emergencyContact
+        ? formData.emergencyPhone
+          ? `${formData.emergencyContact} - ${formData.emergencyPhone}`
+          : formData.emergencyContact
+        : formData.emergencyPhone || '';
+
       const response = await authService.register(
         formData.fullName,
         formData.email,
         formData.password,
         formData.ci,
         formData.phone,
+        formData.birthDate,
+        formData.gender,
+        formData.bloodType,
+        formData.address,
+        formattedEmergency,
       );
 
       if (response.success) {

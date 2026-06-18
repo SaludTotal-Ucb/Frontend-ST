@@ -151,10 +151,32 @@ export const authService = {
       body: { email, password },
     }),
 
-  register: async (name: string, email: string, password: string, ci: string, phone: string) =>
+  register: async (
+    name: string,
+    email: string,
+    password: string,
+    ci: string,
+    phone: string,
+    birthDate?: string,
+    gender?: string,
+    bloodType?: string,
+    address?: string,
+    emergencyContact?: string,
+  ) =>
     apiCall('/auth/register', {
       method: 'POST',
-      body: { name, email, password, ci, phone },
+      body: {
+        name,
+        email,
+        password,
+        ci,
+        phone,
+        birthDate,
+        gender,
+        bloodType,
+        address,
+        emergencyContact,
+      },
     }),
 
   logout: async () => {

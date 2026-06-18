@@ -33,6 +33,7 @@ export default function Profile({ role }: ProfileProps) {
     bloodType: '',
     emergencyContact: '',
     address: '',
+    allergies: '',
   });
 
   // Inicializar el formulario cuando cargue el perfil real
@@ -46,6 +47,7 @@ export default function Profile({ role }: ProfileProps) {
         bloodType: realPerfil.bloodType || '',
         emergencyContact: realPerfil.emergencyContact || '',
         address: realPerfil.address || '',
+        allergies: realPerfil.allergies === 'Ninguna registrada' ? '' : realPerfil.allergies || '',
       });
     }
   }, [realPerfil]);
@@ -62,6 +64,7 @@ export default function Profile({ role }: ProfileProps) {
       bloodType: realPerfil?.bloodType || 'O+',
       address: realPerfil?.address || 'Av. 6 de Agosto #1234, La Paz',
       emergencyContact: realPerfil?.emergencyContact || 'Juan García - 71234567',
+      allergies: realPerfil?.allergies || 'Ninguna registrada',
     },
     doctor: {
       name: currentUser.name || 'Dr. Carlos Méndez',
@@ -97,6 +100,7 @@ export default function Profile({ role }: ProfileProps) {
         bloodType: realPerfil.bloodType || '',
         emergencyContact: realPerfil.emergencyContact || '',
         address: realPerfil.address || '',
+        allergies: realPerfil.allergies === 'Ninguna registrada' ? '' : realPerfil.allergies || '',
       });
     } else {
       // Si no hay perfil cargado, usar el mock
@@ -108,6 +112,7 @@ export default function Profile({ role }: ProfileProps) {
         bloodType: data.bloodType,
         emergencyContact: data.emergencyContact,
         address: data.address,
+        allergies: data.allergies || '',
       });
     }
     setIsEditing(true);
@@ -303,6 +308,22 @@ export default function Profile({ role }: ProfileProps) {
                       <div className="mt-1">
                         <Badge variant="outline">{data.bloodType}</Badge>
                       </div>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="prof-allergies" className="text-sm font-medium text-gray-500">
+                      Alergias
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="prof-allergies"
+                        value={formData.allergies}
+                        onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+                        className="mt-1"
+                        placeholder="Ej: Penicilina, Nueces"
+                      />
+                    ) : (
+                      <p className="text-gray-900 mt-1">{data.allergies}</p>
                     )}
                   </div>
                   <div>
