@@ -93,7 +93,7 @@ export const useCitas = () => {
       queryKey: ['perfil', 'paciente', pacienteId],
       queryFn: async () => {
         // Llama a GET /api/v1/historial/paciente/:id/perfil
-        const { data } = await api.get<any>(`/historial/paciente/${pacienteId}/perfil`);
+        const { data } = await api.get<unknown>(`/historial/paciente/${pacienteId}/perfil`);
         return data;
       },
       enabled: !!pacienteId,
@@ -164,7 +164,7 @@ export const useCitas = () => {
       gender: string;
       emergencyContact: string;
     }) => {
-      const { data } = await api.put<any>('/historial/profile', payload);
+      const { data } = await api.put<unknown>('/historial/profile', payload);
       return data;
     },
     onSuccess: (_, variables) => {

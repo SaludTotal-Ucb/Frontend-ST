@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://saludtotal.com 
+      url: https://frontend-st.onrender.com 
       
     steps:
       - name: Download Build Artifact

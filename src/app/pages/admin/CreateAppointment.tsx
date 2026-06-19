@@ -4,12 +4,7 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { adminService } from '../../../services/api';
 import { Button } from '../../components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import {
@@ -60,8 +55,10 @@ export default function CreateAppointment() {
           adminService.getPacientes(),
           adminService.getDoctores(),
         ]);
-        const pList = Array.isArray(pRes) ? pRes : Array.isArray((pRes as any)?.data) ? (pRes as any).data : [];
-        const dList = Array.isArray(dRes) ? dRes : Array.isArray((dRes as any)?.data) ? (dRes as any).data : [];
+        const pData = pRes as { data?: unknown };
+        const pList = Array.isArray(pRes) ? pRes : Array.isArray(pData?.data) ? pData.data : [];
+        const dData = dRes as { data?: unknown };
+        const dList = Array.isArray(dRes) ? dRes : Array.isArray(dData?.data) ? dData.data : [];
         setPatients(pList as PatientItem[]);
         setDoctors(dList as DoctorItem[]);
       } catch (err) {
@@ -116,7 +113,9 @@ export default function CreateAppointment() {
 
   const filteredDoctors = doctors.filter((d) => {
     const t = doctorSearch.toLowerCase();
-    return (d.name || '').toLowerCase().includes(t) || (d.especialidad || '').toLowerCase().includes(t);
+    return (
+      (d.name || '').toLowerCase().includes(t) || (d.especialidad || '').toLowerCase().includes(t)
+    );
   });
 
   const selectedPatient = patients.find((p) => p.id === form.pacienteId);
@@ -189,7 +188,9 @@ export default function CreateAppointment() {
                   </button>
                 ))
               ) : (
-                <p className="text-gray-500 text-sm text-center py-4">No se encontraron pacientes</p>
+                <p className="text-gray-500 text-sm text-center py-4">
+                  No se encontraron pacientes
+                </p>
               )}
             </div>
           </CardContent>
@@ -238,7 +239,9 @@ export default function CreateAppointment() {
                     onClick={() => handleDoctorChange(d.id)}
                   >
                     <span className="font-medium">{d.name}</span>
-                    <span className="text-gray-500 ml-2 text-xs">{d.especialidad} – {d.clinicaNombre}</span>
+                    <span className="text-gray-500 ml-2 text-xs">
+                      {d.especialidad} – {d.clinicaNombre}
+                    </span>
                   </button>
                 ))
               ) : (
@@ -292,7 +295,17 @@ export default function CreateAppointment() {
                     <SelectItem value="Oftalmología">Oftalmología</SelectItem>
                     <SelectItem value="Psiquiatría">Psiquiatría</SelectItem>
                     {form.especialidad &&
-                      !['Medicina General','Cardiología','Pediatría','Ginecología','Traumatología','Dermatología','Neurología','Oftalmología','Psiquiatría'].includes(form.especialidad) && (
+                      ![
+                        'Medicina General',
+                        'Cardiología',
+                        'Pediatría',
+                        'Ginecología',
+                        'Traumatología',
+                        'Dermatología',
+                        'Neurología',
+                        'Oftalmología',
+                        'Psiquiatría',
+                      ].includes(form.especialidad) && (
                         <SelectItem value={form.especialidad}>{form.especialidad}</SelectItem>
                       )}
                   </SelectContent>
@@ -317,7 +330,11 @@ export default function CreateAppointment() {
           <Button type="button" variant="outline" onClick={() => navigate(-1)} className="flex-1">
             Cancelar
           </Button>
-          <Button type="submit" disabled={submitting || !form.pacienteId || !form.medicoId || !form.fecha} className="flex-1">
+          <Button
+            type="submit"
+            disabled={submitting || !form.pacienteId || !form.medicoId || !form.fecha}
+            className="flex-1"
+          >
             {submitting ? 'Creando Cita...' : 'Crear Cita'}
           </Button>
         </div>

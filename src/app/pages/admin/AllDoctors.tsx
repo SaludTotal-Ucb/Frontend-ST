@@ -1,13 +1,4 @@
-import {
-  ArrowLeft,
-  Building2,
-  Edit,
-  Mail,
-  Phone,
-  Search,
-  Stethoscope,
-  Trash2,
-} from 'lucide-react';
+import { ArrowLeft, Building2, Edit, Mail, Phone, Search, Stethoscope, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -61,27 +52,36 @@ export default function AllDoctors() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editDoctor, setEditDoctor] = useState<DoctorRecord | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', horarioAtencion: '', numeroLicencia: '' });
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    horarioAtencion: '',
+    numeroLicencia: '',
+  });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        setLoading(true);
+        const res = await adminService.getDoctores();
+        const responseData = res as { data?: unknown };
+        const list = Array.isArray(res)
+          ? res
+          : Array.isArray(responseData?.data)
+            ? responseData.data
+            : [];
+        setDoctors(list as DoctorRecord[]);
+      } catch (error) {
+        console.error('Error al obtener médicos:', error);
+        toast.error('Error al cargar médicos');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchDoctors();
   }, []);
-
-  const fetchDoctors = async () => {
-    try {
-      setLoading(true);
-      const res = await adminService.getDoctores();
-      // Backend returns array directly
-      const list = Array.isArray(res) ? res : Array.isArray((res as any)?.data) ? (res as any).data : [];
-      setDoctors(list as DoctorRecord[]);
-    } catch (error) {
-      console.error('Error al obtener médicos:', error);
-      toast.error('Error al cargar médicos');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openEdit = (doc: DoctorRecord) => {
     setEditDoctor(doc);
@@ -103,7 +103,14 @@ export default function AllDoctors() {
       setDoctors((prev) =>
         prev.map((d) =>
           d.id === editDoctor.id
-            ? { ...d, name: editForm.name, email: editForm.email, phone: editForm.phone, horarioAtencion: editForm.horarioAtencion, numeroLicencia: editForm.numeroLicencia }
+            ? {
+                ...d,
+                name: editForm.name,
+                email: editForm.email,
+                phone: editForm.phone,
+                horarioAtencion: editForm.horarioAtencion,
+                numeroLicencia: editForm.numeroLicencia,
+              }
             : d,
         ),
       );
@@ -155,7 +162,11 @@ export default function AllDoctors() {
           <h2 className="text-2xl font-bold text-gray-900">Todos los Médicos</h2>
           <p className="text-gray-600">Gestión de profesionales médicos en el sistema</p>
         </div>
-        <Button variant="outline" onClick={() => navigate('/admin/register-doctor')} className="gap-2">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/admin/register-doctor')}
+          className="gap-2"
+        >
           <Stethoscope className="w-4 h-4" />
           Registrar Médico
         </Button>
@@ -224,28 +235,36 @@ export default function AllDoctors() {
                             <Input
                               type="email"
                               value={editForm.email}
-                              onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, email: e.target.value }))
+                              }
                             />
                           </div>
                           <div className="space-y-1">
                             <Label>Teléfono</Label>
                             <Input
                               value={editForm.phone}
-                              onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, phone: e.target.value }))
+                              }
                             />
                           </div>
                           <div className="space-y-1">
                             <Label>Número de Licencia</Label>
                             <Input
                               value={editForm.numeroLicencia}
-                              onChange={(e) => setEditForm((f) => ({ ...f, numeroLicencia: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, numeroLicencia: e.target.value }))
+                              }
                             />
                           </div>
                           <div className="space-y-1">
                             <Label>Horario de Atención</Label>
                             <Input
                               value={editForm.horarioAtencion}
-                              onChange={(e) => setEditForm((f) => ({ ...f, horarioAtencion: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, horarioAtencion: e.target.value }))
+                              }
                             />
                           </div>
                         </div>
@@ -335,7 +354,9 @@ export default function AllDoctors() {
       </div>
 
       {/* Unused icon reference to suppress lint warning */}
-      <span className="hidden"><Building2 /></span>
+      <span className="hidden">
+        <Building2 />
+      </span>
     </div>
   );
 }
