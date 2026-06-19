@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Calendar, CheckCircle, Clock, FileText, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
@@ -18,6 +19,7 @@ import {
 export default function DoctorDashboard() {
   const { user } = useAuth();
   const { useCitasDoctor } = useCitas();
+  const queryClient = useQueryClient();
 
   const [statsData, setStatsData] = useState({
     citasHoy: 0,
@@ -75,14 +77,21 @@ export default function DoctorDashboard() {
     toast.success(`Consulta iniciada para ${patientName}. Acceso al historial médico habilitado.`);
   };
 
-  const handleFinishConsultation = (appointmentId: string, patientName: string) => {
-    setLocalStatuses((prev) => ({ ...prev, [appointmentId]: 'completed' }));
-    toast.success(`Consulta finalizada para ${patientName}. Historial cerrado.`);
-    // Update stats locally
-    setStatsData((prev) => ({
-      ...prev,
-      citasCompletadas: prev.citasCompletadas + 1,
-    }));
+  const handleFinishConsultation = async (appointmentId: string, patientName: string) => {
+    try {
+      await appointmentService.completeAppointment(appointmentId);
+      setLocalStatuses((prev) => ({ ...prev, [appointmentId]: 'completed' }));
+      toast.success(`Consulta finalizada para ${patientName}. Historial cerrado.`);
+      // Update stats locally
+      setStatsData((prev) => ({
+        ...prev,
+        citasCompletadas: prev.citasCompletadas + 1,
+      }));
+      queryClient.invalidateQueries({ queryKey: ['citas', 'medico', user?.id] });
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al finalizar la cita');
+    }
   };
 
   const handleConfirmAppointment = async (appointmentId: string) => {

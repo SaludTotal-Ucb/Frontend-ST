@@ -17,7 +17,7 @@ import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { useAuth } from '../../../hooks/useAuth';
 import { useCitas } from '../../../hooks/useCitas';
-import { api } from '../../../services/api';
+import { api, appointmentService } from '../../../services/api';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -34,8 +34,11 @@ export default function PatientHistoryView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { useHistorialPaciente, usePerfilPaciente } = useCitas();
+  const { useHistorialPaciente, usePerfilPaciente, useCitasDoctor } = useCitas();
   const queryClient = useQueryClient();
+
+  const todayString = new Date().toISOString().split('T')[0];
+  const { data: citas } = useCitasDoctor(user?.id || '', todayString);
 
   const { data: realHistorial } = useHistorialPaciente(id || '');
   const { data: realPerfil } = usePerfilPaciente(id || '');
@@ -68,12 +71,25 @@ export default function PatientHistoryView() {
   const hasActiveAccess = isConsultationActive;
   const accessExpiresAt = '10:30 hrs';
 
-  const handleFinishConsultation = () => {
-    toast.success('Consulta finalizada correctamente');
-    setIsConsultationActive(false);
-    setTimeout(() => {
-      navigate('/doctor');
-    }, 1500);
+  const handleFinishConsultation = async () => {
+    try {
+      // Find the active appointment for this patient today
+      const activeAppointment = citas?.find(
+        (c) => c.paciente_id === id && c.status === 'confirmed',
+      );
+      if (activeAppointment) {
+        await appointmentService.completeAppointment(activeAppointment.id);
+        queryClient.invalidateQueries({ queryKey: ['citas', 'medico', user?.id] });
+      }
+      toast.success('Consulta finalizada correctamente');
+      setIsConsultationActive(false);
+      setTimeout(() => {
+        navigate('/doctor');
+      }, 1500);
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al finalizar la cita');
+    }
   };
 
   const handleGuardarConsulta = async () => {
@@ -101,7 +117,7 @@ export default function PatientHistoryView() {
       queryClient.invalidateQueries({ queryKey: ['perfil', 'paciente', id] });
 
       toast.success('Consulta y diagnóstico guardados en el historial del paciente');
-      handleFinishConsultation();
+      await handleFinishConsultation();
     } catch (error) {
       console.error(error);
       toast.error('Ocurrió un error al guardar el historial en el servidor');
