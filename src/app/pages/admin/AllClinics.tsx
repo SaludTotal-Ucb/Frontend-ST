@@ -71,6 +71,7 @@ export default function AllClinics() {
     email: '',
     horario: '',
     descripcion: '',
+    especialidades: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -106,6 +107,7 @@ export default function AllClinics() {
       email: clinic.email || '',
       horario: clinic.horario || '',
       descripcion: clinic.descripcion || '',
+      especialidades: clinic.especialidades ? clinic.especialidades.join(', ') : '',
     });
   };
 
@@ -113,9 +115,24 @@ export default function AllClinics() {
     if (!editClinic) return;
     try {
       setSaving(true);
-      await adminService.updateClinica(editClinic.id, editForm);
+      const payload = {
+        ...editForm,
+        especialidades: editForm.especialidades
+          ? editForm.especialidades
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
+      };
+      await adminService.updateClinica(editClinic.id, payload);
       toast.success('Clínica actualizada correctamente');
-      setClinics((prev) => prev.map((c) => (c.id === editClinic.id ? { ...c, ...editForm } : c)));
+      setClinics((prev) =>
+        prev.map((c) =>
+          c.id === editClinic.id
+            ? { ...c, ...editForm, especialidades: payload.especialidades }
+            : c,
+        ),
+      );
       setEditClinic(null);
     } catch (error) {
       toast.error('Error al actualizar la clínica');
@@ -287,6 +304,16 @@ export default function AllClinics() {
                               value={editForm.descripcion}
                               onChange={(e) =>
                                 setEditForm((f) => ({ ...f, descripcion: e.target.value }))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Especialidades (separadas por comas)</Label>
+                            <Input
+                              placeholder="Ej: Odontología, Pediatría"
+                              value={editForm.especialidades}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, especialidades: e.target.value }))
                               }
                             />
                           </div>

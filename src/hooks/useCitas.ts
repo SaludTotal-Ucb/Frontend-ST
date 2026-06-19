@@ -125,8 +125,10 @@ export const useCitas = () => {
       paciente_id?: string;
     }) => {
       // nuevaCita viene de la UI: { especialidad, medico_id, clinica_id, fecha, hora, paciente_id, motivo }
-      // Combinamos fecha (YYYY-MM-DD) y hora (HH:mm) para enviar un ISO string
-      const fechaCombinada = new Date(`${nuevaCita.fecha}T${nuevaCita.hora}:00`).toISOString();
+      // Combinamos fecha (YYYY-MM-DD) y hora (HH:mm) para enviar un ISO string asegurando zona horaria Bolivia (-04:00)
+      const fechaCombinada = new Date(
+        `${nuevaCita.fecha}T${nuevaCita.hora}:00-04:00`,
+      ).toISOString();
       const payload = {
         doctorId: nuevaCita.medico_id,
         fecha: fechaCombinada,

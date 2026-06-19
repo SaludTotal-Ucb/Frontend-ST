@@ -40,15 +40,22 @@ interface DoctorRecord {
   ci: string;
   email: string;
   phone: string | null;
+  clinicaId?: string | null;
   clinicaNombre: string;
   especialidad: string;
   numeroLicencia: string;
   horarioAtencion: string;
 }
 
+interface ClinicBasicInfo {
+  id: string;
+  nombre: string;
+}
+
 export default function AllDoctors() {
   const navigate = useNavigate();
   const [doctors, setDoctors] = useState<DoctorRecord[]>([]);
+  const [clinics, setClinics] = useState<ClinicBasicInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editDoctor, setEditDoctor] = useState<DoctorRecord | null>(null);
@@ -58,29 +65,42 @@ export default function AllDoctors() {
     phone: '',
     horarioAtencion: '',
     numeroLicencia: '',
+    clinicaId: '',
   });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const fetchDoctors = async () => {
+    const fetchAllData = async () => {
       try {
         setLoading(true);
-        const res = await adminService.getDoctores();
-        const responseData = res as { data?: unknown };
-        const list = Array.isArray(res)
-          ? res
-          : Array.isArray(responseData?.data)
-            ? responseData.data
+        const [docsRes, clinRes] = await Promise.all([
+          adminService.getDoctores(),
+          adminService.getClinicas(),
+        ]);
+
+        const responseDataD = docsRes as { data?: unknown };
+        const listD = Array.isArray(docsRes)
+          ? docsRes
+          : Array.isArray(responseDataD?.data)
+            ? responseDataD.data
             : [];
-        setDoctors(list as DoctorRecord[]);
+        setDoctors(listD as DoctorRecord[]);
+
+        const responseDataC = clinRes as { data?: unknown };
+        const listC = Array.isArray(clinRes)
+          ? clinRes
+          : Array.isArray(responseDataC?.data)
+            ? responseDataC.data
+            : [];
+        setClinics(listC as ClinicBasicInfo[]);
       } catch (error) {
-        console.error('Error al obtener médicos:', error);
-        toast.error('Error al cargar médicos');
+        console.error('Error al obtener datos:', error);
+        toast.error('Error al cargar datos');
       } finally {
         setLoading(false);
       }
     };
-    fetchDoctors();
+    fetchAllData();
   }, []);
 
   const openEdit = (doc: DoctorRecord) => {
@@ -91,6 +111,7 @@ export default function AllDoctors() {
       phone: doc.phone || '',
       horarioAtencion: doc.horarioAtencion || '',
       numeroLicencia: doc.numeroLicencia || '',
+      clinicaId: doc.clinicaId || '',
     });
   };
 
@@ -101,18 +122,22 @@ export default function AllDoctors() {
       await adminService.updateMedico(editDoctor.id, editForm);
       toast.success('Médico actualizado correctamente');
       setDoctors((prev) =>
-        prev.map((d) =>
-          d.id === editDoctor.id
-            ? {
-                ...d,
-                name: editForm.name,
-                email: editForm.email,
-                phone: editForm.phone,
-                horarioAtencion: editForm.horarioAtencion,
-                numeroLicencia: editForm.numeroLicencia,
-              }
-            : d,
-        ),
+        prev.map((d) => {
+          if (d.id === editDoctor.id) {
+            const nuevaClinica = clinics.find((c) => c.id === editForm.clinicaId);
+            return {
+              ...d,
+              name: editForm.name,
+              email: editForm.email,
+              phone: editForm.phone,
+              horarioAtencion: editForm.horarioAtencion,
+              numeroLicencia: editForm.numeroLicencia,
+              clinicaId: editForm.clinicaId,
+              clinicaNombre: nuevaClinica ? nuevaClinica.nombre : d.clinicaNombre,
+            };
+          }
+          return d;
+        }),
       );
       setEditDoctor(null);
     } catch (error) {
@@ -257,6 +282,25 @@ export default function AllDoctors() {
                                 setEditForm((f) => ({ ...f, numeroLicencia: e.target.value }))
                               }
                             />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Clínica Asignada</Label>
+                            <select
+                              className="w-full flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                              value={editForm.clinicaId}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, clinicaId: e.target.value }))
+                              }
+                            >
+                              <option value="" disabled>
+                                Selecciona una clínica
+                              </option>
+                              {clinics.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.nombre}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                           <div className="space-y-1">
                             <Label>Horario de Atención</Label>
