@@ -67,10 +67,15 @@ interface Appointment {
   notas?: string;
 }
 
+interface ClinicRecord {
+  id: string;
+  nombre: string;
+}
+
 export default function AllAppointments() {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [clinics, setClinics] = useState<Record<string, unknown>[]>([]);
+  const [clinics, setClinics] = useState<ClinicRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -103,7 +108,7 @@ export default function AllAppointments() {
             ? clinicsData.data
             : [];
         setAppointments(aptsList as Appointment[]);
-        setClinics(clinicsList);
+        setClinics(clinicsList as ClinicRecord[]);
       } catch (error) {
         console.error(error);
         toast.error('Error al cargar datos');
