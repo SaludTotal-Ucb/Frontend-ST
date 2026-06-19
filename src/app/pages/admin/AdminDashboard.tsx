@@ -232,6 +232,12 @@ export default function AdminDashboard() {
                     Ver Todas las Citas
                   </Button>
                 </Link>
+                <Link to="/admin/create-appointment">
+                  <Button className="w-full justify-start" variant="outline">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Crear Cita
+                  </Button>
+                </Link>
                 <Link to="/admin/doctors">
                   <Button className="w-full justify-start" variant="outline">
                     <Stethoscope className="w-4 h-4 mr-2" />
@@ -242,6 +248,12 @@ export default function AdminDashboard() {
                   <Button className="w-full justify-start" variant="outline">
                     <Users className="w-4 h-4 mr-2" />
                     Ver Todos los Pacientes
+                  </Button>
+                </Link>
+                <Link to="/admin/clinics">
+                  <Button className="w-full justify-start" variant="outline">
+                    <Building2 className="w-4 h-4 mr-2" />
+                    Ver Todas las Clínicas
                   </Button>
                 </Link>
               </CardContent>
