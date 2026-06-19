@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { useAuth } from '../../../hooks/useAuth';
 import { useCitas } from '../../../hooks/useCitas';
-import { doctorService } from '../../../services/api';
+import { appointmentService, doctorService } from '../../../services/api';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import {
@@ -83,6 +83,17 @@ export default function DoctorDashboard() {
       ...prev,
       citasCompletadas: prev.citasCompletadas + 1,
     }));
+  };
+
+  const handleConfirmAppointment = async (appointmentId: string) => {
+    try {
+      await appointmentService.confirmAppointment(appointmentId);
+      setLocalStatuses((prev) => ({ ...prev, [appointmentId]: 'confirmed' }));
+      toast.success('Cita confirmada correctamente');
+    } catch (error) {
+      toast.error('Error al confirmar la cita');
+      console.error(error);
+    }
   };
 
   const stats = [
@@ -235,7 +246,19 @@ export default function DoctorDashboard() {
                         </div>
                       )}
 
-                      {(status === 'pending' || status === 'confirmed') && (
+                      {status === 'pending' && (
+                        <div className="mt-3">
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={() => handleConfirmAppointment(appointment.id)}
+                          >
+                            Confirmar Cita
+                          </Button>
+                        </div>
+                      )}
+
+                      {status === 'confirmed' && (
                         <div className="mt-3">
                           <Button
                             size="sm"

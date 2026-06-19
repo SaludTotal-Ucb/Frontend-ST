@@ -214,6 +214,11 @@ export const appointmentService = {
     apiCall(`/citas/${id}/cancelar`, {
       method: 'PATCH',
     }),
+
+  confirmAppointment: async (id: string) =>
+    apiCall(`/citas/${id}/confirmar`, {
+      method: 'PATCH',
+    }),
 };
 
 export const historialService = {
@@ -267,29 +272,25 @@ export const adminService = {
   updatePaciente: async (id: string, data: object) =>
     apiCall(`/admin/pacientes/${id}`, { method: 'PATCH', body: data }),
 
-  deletePaciente: async (id: string) =>
-    apiCall(`/admin/pacientes/${id}`, { method: 'DELETE' }),
+  deletePaciente: async (id: string) => apiCall(`/admin/pacientes/${id}`, { method: 'DELETE' }),
 
   // ── Médicos CRUD ──
   updateMedico: async (id: string, data: object) =>
     apiCall(`/admin/medicos/${id}`, { method: 'PATCH', body: data }),
 
-  deleteMedico: async (id: string) =>
-    apiCall(`/admin/medicos/${id}`, { method: 'DELETE' }),
+  deleteMedico: async (id: string) => apiCall(`/admin/medicos/${id}`, { method: 'DELETE' }),
 
   // ── Clínicas CRUD ──
   updateClinica: async (id: string, data: object) =>
     apiCall(`/admin/clinicas/${id}`, { method: 'PATCH', body: data }),
 
-  deleteClinica: async (id: string) =>
-    apiCall(`/admin/clinicas/${id}`, { method: 'DELETE' }),
+  deleteClinica: async (id: string) => apiCall(`/admin/clinicas/${id}`, { method: 'DELETE' }),
 
   // ── Citas CRUD ──
   updateCita: async (id: string, data: object) =>
     apiCall(`/admin/citas/${id}`, { method: 'PATCH', body: data }),
 
-  deleteCita: async (id: string) =>
-    apiCall(`/admin/citas/${id}`, { method: 'DELETE' }),
+  deleteCita: async (id: string) => apiCall(`/admin/citas/${id}`, { method: 'DELETE' }),
 
   createCitaAsAdmin: async (data: object) =>
     apiCall('/admin/citas', { method: 'POST', body: data }),
