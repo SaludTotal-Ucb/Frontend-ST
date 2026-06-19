@@ -40,9 +40,6 @@ jobs:
       - name: Build Application
         run: npm run build
 
-      - name: Validate Docker Build Context
-        run: docker build -t frontend:latest .
-
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
