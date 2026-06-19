@@ -219,6 +219,11 @@ export const appointmentService = {
     apiCall(`/citas/${id}/confirmar`, {
       method: 'PATCH',
     }),
+
+  completeAppointment: async (id: string) =>
+    apiCall(`/citas/${id}/completar`, {
+      method: 'PATCH',
+    }),
 };
 
 export const historialService = {
