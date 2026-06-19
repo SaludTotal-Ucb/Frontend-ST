@@ -8,6 +8,8 @@ import {
   Eye,
   FileText,
   Lock,
+  Plus,
+  Trash2,
   User,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -44,6 +46,23 @@ export default function PatientHistoryView() {
   const [tratamiento, setTratamiento] = useState('');
   const [severidad, setSeveridad] = useState('MEDIA');
   const [isSaving, setIsSaving] = useState(false);
+  const [recetas, setRecetas] = useState<
+    { medicamento: string; dosis: string; frecuencia: string; indicaciones: string }[]
+  >([]);
+
+  const handleAddReceta = () => {
+    setRecetas([...recetas, { medicamento: '', dosis: '', frecuencia: '', indicaciones: '' }]);
+  };
+
+  const handleUpdateReceta = (index: number, field: string, value: string) => {
+    const newRecetas = [...recetas];
+    newRecetas[index] = { ...newRecetas[index], [field]: value };
+    setRecetas(newRecetas);
+  };
+
+  const handleRemoveReceta = (index: number) => {
+    setRecetas(recetas.filter((_, i) => i !== index));
+  };
 
   // Simulated JWT access control
   const hasActiveAccess = isConsultationActive;
@@ -74,6 +93,7 @@ export default function PatientHistoryView() {
         medico_encargado: user?.name || 'Dr. Médico',
         descripcion: motivo,
         tratamiento: tratamiento,
+        recetas: recetas.filter((r) => r.medicamento.trim() !== ''),
       };
 
       await api.post('/historial', payloadHistorial);
@@ -213,13 +233,7 @@ export default function PatientHistoryView() {
       )
     : [];
 
-  const currentMedications =
-    realMedications.length > 0
-      ? realMedications
-      : [
-          { name: 'Enalapril 10mg', dosage: '1 tableta cada 12 horas', duration: 'Continuo' },
-          { name: 'Aspirina 100mg', dosage: '1 tableta al día', duration: 'Continuo' },
-        ];
+  const currentMedications = realMedications;
 
   return (
     <div className="space-y-6">
@@ -415,19 +429,25 @@ export default function PatientHistoryView() {
                   <CardDescription>Tratamientos en curso del paciente</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {currentMedications.map((med, index) => (
-                    <div key={index} className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h4 className="font-semibold text-gray-900 mb-2">{med.name}</h4>
-                      <div className="space-y-1 text-sm text-gray-700">
-                        <p>
-                          <strong>Dosificación:</strong> {med.dosage}
-                        </p>
-                        <p>
-                          <strong>Duración:</strong> {med.duration}
-                        </p>
+                  {currentMedications.length === 0 ? (
+                    <p className="text-gray-500 text-sm">
+                      No hay medicamentos registrados actualmente.
+                    </p>
+                  ) : (
+                    currentMedications.map((med, index) => (
+                      <div key={index} className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="font-semibold text-gray-900 mb-2">{med.name}</h4>
+                        <div className="space-y-1 text-sm text-gray-700">
+                          <p>
+                            <strong>Dosificación:</strong> {med.dosage}
+                          </p>
+                          <p>
+                            <strong>Duración:</strong> {med.duration}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -498,6 +518,100 @@ export default function PatientHistoryView() {
                         value={tratamiento}
                         onChange={(e) => setTratamiento(e.target.value)}
                       />
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Recetas / Medicamentos
+                        </label>
+                        <Button variant="outline" size="sm" onClick={handleAddReceta} type="button">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Añadir Medicamento
+                        </Button>
+                      </div>
+
+                      {recetas.length === 0 && (
+                        <p className="text-sm text-gray-500 italic">
+                          No se han añadido recetas para esta consulta.
+                        </p>
+                      )}
+
+                      {recetas.map((receta, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 border border-gray-200 rounded-lg space-y-3 relative bg-gray-50"
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleRemoveReceta(idx)}
+                            type="button"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Medicamento
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-600"
+                              placeholder="Ej. Paracetamol 500mg"
+                              value={receta.medicamento}
+                              onChange={(e) =>
+                                handleUpdateReceta(idx, 'medicamento', e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Dosis / Frecuencia
+                              </label>
+                              <input
+                                type="text"
+                                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-600"
+                                placeholder="Ej. 1 tableta cada 8 horas"
+                                value={receta.dosis}
+                                onChange={(e) => handleUpdateReceta(idx, 'dosis', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Duración
+                              </label>
+                              <input
+                                type="text"
+                                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-600"
+                                placeholder="Ej. 5 días"
+                                value={receta.frecuencia}
+                                onChange={(e) =>
+                                  handleUpdateReceta(idx, 'frecuencia', e.target.value)
+                                }
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Indicaciones extra
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-600"
+                              placeholder="Ej. Tomar después de comer"
+                              value={receta.indicaciones}
+                              onChange={(e) =>
+                                handleUpdateReceta(idx, 'indicaciones', e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-3">
