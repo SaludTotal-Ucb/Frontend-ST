@@ -1,6 +1,31 @@
-import { Building2, Calendar, Clock, Filter, Search, Stethoscope, User } from 'lucide-react';
+import {
+  ArrowLeft,
+  Building2,
+  Calendar,
+  Clock,
+  Edit,
+  Filter,
+  Plus,
+  Search,
+  Stethoscope,
+  Trash2,
+  User,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
 import { adminService } from '../../../services/api';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../components/ui/alert-dialog';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import {
@@ -10,6 +35,15 @@ import {
   CardHeader,
   CardTitle,
 } from '../../components/ui/card';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../../components/ui/dialog';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import {
@@ -21,7 +55,7 @@ import {
 } from '../../components/ui/select';
 
 interface Appointment {
-  id: string | number;
+  id: string;
   patient: string;
   patientCI: string;
   doctor: string;
@@ -29,19 +63,12 @@ interface Appointment {
   clinic: string;
   date: string;
   time: string;
-  status:
-    | 'confirmed'
-    | 'completed'
-    | 'cancelled'
-    | 'no-show'
-    | 'absent'
-    | 'confirmada'
-    | 'completada'
-    | 'cancelada'
-    | 'ausente';
+  status: string;
+  notas?: string;
 }
 
 export default function AllAppointments() {
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [clinics, setClinics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,24 +77,74 @@ export default function AllAppointments() {
   const [filterDate, setFilterDate] = useState('');
   const [filterClinic, setFilterClinic] = useState<string>('all');
 
+  // Edit state
+  const [editApt, setEditApt] = useState<Appointment | null>(null);
+  const [editForm, setEditForm] = useState({ estado: '', fecha: '', notas: '' });
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [aptsRes, clinicsRes] = await Promise.all([
-          adminService.getAllAppointments(),
-          adminService.getClinicas(),
-        ]);
-        setAppointments((aptsRes || []) as Appointment[]);
-        setClinics((clinicsRes || []) as any[]);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [aptsRes, clinicsRes] = await Promise.all([
+        adminService.getAllAppointments(),
+        adminService.getClinicas(),
+      ]);
+      // Both return arrays directly
+      const aptsList = Array.isArray(aptsRes) ? aptsRes : Array.isArray((aptsRes as any)?.data) ? (aptsRes as any).data : [];
+      const clinicsList = Array.isArray(clinicsRes) ? clinicsRes : Array.isArray((clinicsRes as any)?.data) ? (clinicsRes as any).data : [];
+      setAppointments(aptsList as Appointment[]);
+      setClinics(clinicsList);
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al cargar las citas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEdit = (apt: Appointment) => {
+    setEditApt(apt);
+    // Rebuild datetime string for input
+    const dateStr = apt.date && apt.time ? `${apt.date}T${apt.time}` : apt.date || '';
+    setEditForm({ estado: apt.status, fecha: dateStr, notas: apt.notas || '' });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editApt) return;
+    try {
+      setSaving(true);
+      await adminService.updateCita(editApt.id, editForm);
+      toast.success('Cita actualizada correctamente');
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a.id === editApt.id
+            ? { ...a, status: editForm.estado, notas: editForm.notas }
+            : a,
+        ),
+      );
+      setEditApt(null);
+    } catch (error) {
+      toast.error('Error al actualizar la cita');
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await adminService.deleteCita(id);
+      toast.success('Cita eliminada correctamente');
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
+    } catch (error) {
+      toast.error('Error al eliminar la cita');
+      console.error(error);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -91,9 +168,9 @@ export default function AllAppointments() {
 
   const filteredAppointments = appointments.filter((apt) => {
     const matchesSearch =
-      apt.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      apt.patientCI.includes(searchTerm) ||
-      apt.doctor.toLowerCase().includes(searchTerm.toLowerCase());
+      (apt.patient || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (apt.patientCI || '').includes(searchTerm) ||
+      (apt.doctor || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = filterStatus === 'all' || apt.status === filterStatus;
     const matchesDate = !filterDate || apt.date === filterDate;
@@ -104,67 +181,43 @@ export default function AllAppointments() {
 
   const stats = {
     total: filteredAppointments.length,
-    confirmed: filteredAppointments.filter(
-      (a) => a.status === 'confirmed' || a.status === 'confirmada',
-    ).length,
-    completed: filteredAppointments.filter(
-      (a) => a.status === 'completed' || a.status === 'completada',
-    ).length,
-    cancelled: filteredAppointments.filter(
-      (a) => a.status === 'cancelled' || a.status === 'cancelada',
-    ).length,
-    noShow: filteredAppointments.filter(
-      (a) => a.status === 'no-show' || a.status === 'absent' || a.status === 'ausente',
-    ).length,
+    confirmed: filteredAppointments.filter((a) => a.status === 'confirmed' || a.status === 'confirmada').length,
+    completed: filteredAppointments.filter((a) => a.status === 'completed' || a.status === 'completada').length,
+    cancelled: filteredAppointments.filter((a) => a.status === 'cancelled' || a.status === 'cancelada').length,
+    noShow: filteredAppointments.filter((a) => ['no-show', 'absent', 'ausente'].includes(a.status)).length,
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500 animate-pulse">Cargando citas y hospitales...</p>
+        <p className="text-gray-500 animate-pulse">Cargando citas...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Todas las Citas</h2>
-        <p className="text-gray-600">Gestión completa de citas del sistema</p>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold text-gray-900">Todas las Citas</h2>
+          <p className="text-gray-600">Gestión completa de citas del sistema</p>
+        </div>
+        <Button onClick={() => navigate('/admin/create-appointment')} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Nueva Cita
+        </Button>
       </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600">Total</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600">Confirmadas</p>
-            <p className="text-2xl font-bold text-green-600">{stats.confirmed}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600">Completadas</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600">Canceladas</p>
-            <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600">No asistió</p>
-            <p className="text-2xl font-bold text-orange-600">{stats.noShow}</p>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-gray-600">Total</p><p className="text-2xl font-bold text-gray-900">{stats.total}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-gray-600">Confirmadas</p><p className="text-2xl font-bold text-green-600">{stats.confirmed}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-gray-600">Completadas</p><p className="text-2xl font-bold text-blue-600">{stats.completed}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-gray-600">Canceladas</p><p className="text-2xl font-bold text-red-600">{stats.cancelled}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-gray-600">No asistió</p><p className="text-2xl font-bold text-orange-600">{stats.noShow}</p></CardContent></Card>
       </div>
 
       {/* Filters */}
@@ -289,20 +342,14 @@ export default function AllAppointments() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-sm">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-700">
-                            <strong>Paciente:</strong> {apt.patient}
-                          </span>
+                          <span className="text-gray-700"><strong>Paciente:</strong> {apt.patient}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-gray-700">
-                            <strong>CI:</strong> {apt.patientCI}
-                          </span>
+                          <span className="text-gray-700"><strong>CI:</strong> {apt.patientCI}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Stethoscope className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-700">
-                            {apt.doctor} - {apt.specialty}
-                          </span>
+                          <span className="text-gray-700">{apt.doctor} - {apt.specialty}</span>
                         </div>
                         <div className="flex items-center gap-2 sm:col-span-2">
                           <Building2 className="w-4 h-4 text-gray-400" />
@@ -311,10 +358,103 @@ export default function AllAppointments() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        Ver Detalles
-                      </Button>
+                    <div className="flex gap-1.5">
+                      {/* Edit */}
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50"
+                            onClick={() => openEdit(apt)}
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                            Editar
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Editar Cita</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-2">
+                            <div className="space-y-1">
+                              <Label>Estado</Label>
+                              <Select
+                                value={editForm.estado}
+                                onValueChange={(v) => setEditForm((f) => ({ ...f, estado: v }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="confirmed">Confirmada</SelectItem>
+                                  <SelectItem value="completed">Completada</SelectItem>
+                                  <SelectItem value="cancelled">Cancelada</SelectItem>
+                                  <SelectItem value="no-show">No asistió</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label>Fecha y Hora</Label>
+                              <Input
+                                type="datetime-local"
+                                value={editForm.fecha}
+                                onChange={(e) => setEditForm((f) => ({ ...f, fecha: e.target.value }))}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label>Notas</Label>
+                              <Input
+                                value={editForm.notas}
+                                onChange={(e) => setEditForm((f) => ({ ...f, notas: e.target.value }))}
+                                placeholder="Observaciones opcionales..."
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <DialogClose asChild>
+                              <Button variant="outline">Cancelar</Button>
+                            </DialogClose>
+                            <DialogClose asChild>
+                              <Button onClick={handleSaveEdit} disabled={saving}>
+                                {saving ? 'Guardando...' : 'Guardar Cambios'}
+                              </Button>
+                            </DialogClose>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+
+                      {/* Delete */}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Eliminar
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar Cita?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción eliminará la cita de <strong>{apt.patient}</strong> con{' '}
+                              <strong>{apt.doctor}</strong> del {apt.date}. No se puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-red-600 hover:bg-red-700"
+                              onClick={() => handleDelete(apt.id)}
+                            >
+                              Sí, eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>

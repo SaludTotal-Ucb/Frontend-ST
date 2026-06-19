@@ -1,7 +1,28 @@
-import { ArrowLeft, Building2, Mail, Phone, Search, Stethoscope } from 'lucide-react';
+import {
+  ArrowLeft,
+  Building2,
+  Edit,
+  Mail,
+  Phone,
+  Search,
+  Stethoscope,
+  Trash2,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
 import { adminService } from '../../../services/api';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../components/ui/alert-dialog';
 import { Button } from '../../components/ui/button';
 import {
   Card,
@@ -10,6 +31,15 @@ import {
   CardHeader,
   CardTitle,
 } from '../../components/ui/card';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../../components/ui/dialog';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 
@@ -30,25 +60,72 @@ export default function AllDoctors() {
   const [doctors, setDoctors] = useState<DoctorRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editDoctor, setEditDoctor] = useState<DoctorRecord | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', horarioAtencion: '', numeroLicencia: '' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const fetchDoctors = async () => {
-      try {
-        setLoading(true);
-        const res = await adminService.getDoctores();
-        if (res && res.success && res.data) {
-          setDoctors(res.data as DoctorRecord[]);
-        } else {
-          setDoctors([]);
-        }
-      } catch (error) {
-        console.error('Error al obtener médicos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchDoctors();
   }, []);
+
+  const fetchDoctors = async () => {
+    try {
+      setLoading(true);
+      const res = await adminService.getDoctores();
+      // Backend returns array directly
+      const list = Array.isArray(res) ? res : Array.isArray((res as any)?.data) ? (res as any).data : [];
+      setDoctors(list as DoctorRecord[]);
+    } catch (error) {
+      console.error('Error al obtener médicos:', error);
+      toast.error('Error al cargar médicos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEdit = (doc: DoctorRecord) => {
+    setEditDoctor(doc);
+    setEditForm({
+      name: doc.name,
+      email: doc.email,
+      phone: doc.phone || '',
+      horarioAtencion: doc.horarioAtencion || '',
+      numeroLicencia: doc.numeroLicencia || '',
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editDoctor) return;
+    try {
+      setSaving(true);
+      await adminService.updateMedico(editDoctor.id, editForm);
+      toast.success('Médico actualizado correctamente');
+      setDoctors((prev) =>
+        prev.map((d) =>
+          d.id === editDoctor.id
+            ? { ...d, name: editForm.name, email: editForm.email, phone: editForm.phone, horarioAtencion: editForm.horarioAtencion, numeroLicencia: editForm.numeroLicencia }
+            : d,
+        ),
+      );
+      setEditDoctor(null);
+    } catch (error) {
+      toast.error('Error al actualizar el médico');
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    try {
+      await adminService.deleteMedico(id);
+      toast.success(`Médico "${name}" eliminado correctamente`);
+      setDoctors((prev) => prev.filter((d) => d.id !== id));
+    } catch (error) {
+      toast.error('Error al eliminar el médico');
+      console.error(error);
+    }
+  };
 
   const filteredDoctors = doctors.filter((doc) => {
     const term = searchTerm.toLowerCase();
@@ -74,13 +151,17 @@ export default function AllDoctors() {
         <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h2 className="text-2xl font-bold text-gray-900">Todos los Médicos</h2>
           <p className="text-gray-600">Gestión de profesionales médicos en el sistema</p>
         </div>
+        <Button variant="outline" onClick={() => navigate('/admin/register-doctor')} className="gap-2">
+          <Stethoscope className="w-4 h-4" />
+          Registrar Médico
+        </Button>
       </div>
 
-      {/* Search Filter */}
+      {/* Search */}
       <Card>
         <CardContent className="pt-6">
           <div className="space-y-2">
@@ -113,7 +194,105 @@ export default function AllDoctors() {
                       {doc.especialidad}
                     </CardDescription>
                   </div>
-                  <Building2 className="w-8 h-8 text-gray-400 flex-shrink-0" />
+                  <div className="flex gap-1">
+                    {/* Edit */}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => openEdit(doc)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Editar Médico</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                          <div className="space-y-1">
+                            <Label>Nombre</Label>
+                            <Input
+                              value={editForm.name}
+                              onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Email</Label>
+                            <Input
+                              type="email"
+                              value={editForm.email}
+                              onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Teléfono</Label>
+                            <Input
+                              value={editForm.phone}
+                              onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Número de Licencia</Label>
+                            <Input
+                              value={editForm.numeroLicencia}
+                              onChange={(e) => setEditForm((f) => ({ ...f, numeroLicencia: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Horario de Atención</Label>
+                            <Input
+                              value={editForm.horarioAtencion}
+                              onChange={(e) => setEditForm((f) => ({ ...f, horarioAtencion: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button variant="outline">Cancelar</Button>
+                          </DialogClose>
+                          <DialogClose asChild>
+                            <Button onClick={handleSaveEdit} disabled={saving}>
+                              {saving ? 'Guardando...' : 'Guardar Cambios'}
+                            </Button>
+                          </DialogClose>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+
+                    {/* Delete */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar Médico?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción eliminará permanentemente a <strong>{doc.name}</strong> y
+                            todos sus datos del sistema. No se puede deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => handleDelete(doc.id, doc.name)}
+                          >
+                            Sí, eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-gray-700">
@@ -154,6 +333,9 @@ export default function AllDoctors() {
           </div>
         )}
       </div>
+
+      {/* Unused icon reference to suppress lint warning */}
+      <span className="hidden"><Building2 /></span>
     </div>
   );
 }

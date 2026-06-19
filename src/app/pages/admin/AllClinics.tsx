@@ -1,14 +1,13 @@
 import {
   ArrowLeft,
-  Calendar,
-  CreditCard,
+  Building2,
   Edit,
   Mail,
+  MapPin,
   Phone,
   Plus,
   Search,
   Trash2,
-  User,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -25,6 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '../../components/ui/alert-dialog';
+import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import {
   Card,
@@ -45,91 +45,104 @@ import {
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 
-interface PatientRecord {
+interface ClinicRecord {
   id: string;
-  name: string;
-  ci: string;
-  email: string;
-  phone: string;
-  createdAt: string;
+  nombre: string;
+  ciudad: string;
+  direccion: string;
+  telefono: string | null;
+  email: string | null;
+  horario: string | null;
+  descripcion: string | null;
+  especialidades: string[];
 }
 
-export default function AllPatients() {
+export default function AllClinics() {
   const navigate = useNavigate();
-  const [patients, setPatients] = useState<PatientRecord[]>([]);
+  const [clinics, setClinics] = useState<ClinicRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editPatient, setEditPatient] = useState<PatientRecord | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', ci: '' });
+  const [editClinic, setEditClinic] = useState<ClinicRecord | null>(null);
+  const [editForm, setEditForm] = useState({
+    nombre: '', ciudad: '', direccion: '', telefono: '', email: '', horario: '', descripcion: '',
+  });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchPatients();
+    fetchClinics();
   }, []);
 
-  const fetchPatients = async () => {
+  const fetchClinics = async () => {
     try {
       setLoading(true);
-      const res = await adminService.getPacientes();
-      // Backend returns array directly
+      const res = await adminService.getClinicas();
       const list = Array.isArray(res) ? res : Array.isArray((res as any)?.data) ? (res as any).data : [];
-      setPatients(list as PatientRecord[]);
+      setClinics(list as ClinicRecord[]);
     } catch (error) {
-      console.error('Error al obtener pacientes:', error);
-      toast.error('Error al cargar pacientes');
+      console.error('Error al obtener clínicas:', error);
+      toast.error('Error al cargar clínicas');
     } finally {
       setLoading(false);
     }
   };
 
-  const openEdit = (pat: PatientRecord) => {
-    setEditPatient(pat);
-    setEditForm({ name: pat.name, email: pat.email, phone: pat.phone || '', ci: pat.ci || '' });
+  const openEdit = (clinic: ClinicRecord) => {
+    setEditClinic(clinic);
+    setEditForm({
+      nombre: clinic.nombre,
+      ciudad: clinic.ciudad,
+      direccion: clinic.direccion,
+      telefono: clinic.telefono || '',
+      email: clinic.email || '',
+      horario: clinic.horario || '',
+      descripcion: clinic.descripcion || '',
+    });
   };
 
   const handleSaveEdit = async () => {
-    if (!editPatient) return;
+    if (!editClinic) return;
     try {
       setSaving(true);
-      await adminService.updatePaciente(editPatient.id, editForm);
-      toast.success('Paciente actualizado correctamente');
-      setPatients((prev) =>
-        prev.map((p) => (p.id === editPatient.id ? { ...p, ...editForm } : p)),
+      await adminService.updateClinica(editClinic.id, editForm);
+      toast.success('Clínica actualizada correctamente');
+      setClinics((prev) =>
+        prev.map((c) =>
+          c.id === editClinic.id ? { ...c, ...editForm } : c,
+        ),
       );
-      setEditPatient(null);
+      setEditClinic(null);
     } catch (error) {
-      toast.error('Error al actualizar el paciente');
+      toast.error('Error al actualizar la clínica');
       console.error(error);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = async (id: string, nombre: string) => {
     try {
-      await adminService.deletePaciente(id);
-      toast.success(`Paciente "${name}" eliminado correctamente`);
-      setPatients((prev) => prev.filter((p) => p.id !== id));
+      await adminService.deleteClinica(id);
+      toast.success(`Clínica "${nombre}" eliminada correctamente`);
+      setClinics((prev) => prev.filter((c) => c.id !== id));
     } catch (error) {
-      toast.error('Error al eliminar el paciente');
+      toast.error('Error al eliminar la clínica');
       console.error(error);
     }
   };
 
-  const filteredPatients = patients.filter((pat) => {
+  const filteredClinics = clinics.filter((c) => {
     const term = searchTerm.toLowerCase();
     return (
-      (pat.name || '').toLowerCase().includes(term) ||
-      (pat.email || '').toLowerCase().includes(term) ||
-      (pat.ci || '').includes(term) ||
-      (pat.phone || '').includes(term)
+      (c.nombre || '').toLowerCase().includes(term) ||
+      (c.ciudad || '').toLowerCase().includes(term) ||
+      (c.direccion || '').toLowerCase().includes(term)
     );
   });
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500 animate-pulse">Cargando lista de pacientes...</p>
+        <p className="text-gray-500 animate-pulse">Cargando lista de clínicas...</p>
       </div>
     );
   }
@@ -141,16 +154,12 @@ export default function AllPatients() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-gray-900">Todos los Pacientes</h2>
-          <p className="text-gray-600">Gestión de pacientes registrados en el sistema</p>
+          <h2 className="text-2xl font-bold text-gray-900">Todas las Clínicas</h2>
+          <p className="text-gray-600">Gestión de centros médicos registrados en el sistema</p>
         </div>
-        <Button onClick={() => navigate('/admin/create-appointment')} className="gap-2">
+        <Button variant="outline" onClick={() => navigate('/admin/register-clinic')} className="gap-2">
           <Plus className="w-4 h-4" />
-          Nueva Cita
-        </Button>
-        <Button variant="outline" onClick={() => navigate('/admin/register-patient')} className="gap-2">
-          <User className="w-4 h-4" />
-          Registrar Paciente
+          Registrar Clínica
         </Button>
       </div>
 
@@ -158,12 +167,12 @@ export default function AllPatients() {
       <Card>
         <CardContent className="pt-6">
           <div className="space-y-2">
-            <Label htmlFor="search">Buscar Paciente</Label>
+            <Label htmlFor="search">Buscar Clínica</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 id="search"
-                placeholder="Buscar por nombre, CI, email o teléfono..."
+                placeholder="Buscar por nombre, ciudad o dirección..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
@@ -173,18 +182,18 @@ export default function AllPatients() {
         </CardContent>
       </Card>
 
-      {/* Patients List */}
+      {/* Clinics List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredPatients.length > 0 ? (
-          filteredPatients.map((pat) => (
-            <Card key={pat.id} className="hover:shadow-md transition-shadow">
+        {filteredClinics.length > 0 ? (
+          filteredClinics.map((clinic) => (
+            <Card key={clinic.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <CardTitle className="text-lg font-bold text-gray-900">{pat.name}</CardTitle>
-                    <CardDescription className="flex items-center gap-1.5 mt-1 font-medium text-gray-500">
-                      <CreditCard className="w-4 h-4" />
-                      CI: {pat.ci || 'No registrado'}
+                    <CardTitle className="text-lg font-bold text-gray-900">{clinic.nombre}</CardTitle>
+                    <CardDescription className="flex items-center gap-1.5 mt-1 font-medium text-purple-600">
+                      <MapPin className="w-4 h-4" />
+                      {clinic.ciudad}
                     </CardDescription>
                   </div>
                   <div className="flex gap-1">
@@ -195,21 +204,42 @@ export default function AllPatients() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          onClick={() => openEdit(pat)}
+                          onClick={() => openEdit(clinic)}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="max-w-lg">
                         <DialogHeader>
-                          <DialogTitle>Editar Paciente</DialogTitle>
+                          <DialogTitle>Editar Clínica</DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4 py-2">
+                        <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
                           <div className="space-y-1">
                             <Label>Nombre</Label>
                             <Input
-                              value={editForm.name}
-                              onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                              value={editForm.nombre}
+                              onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Ciudad</Label>
+                            <Input
+                              value={editForm.ciudad}
+                              onChange={(e) => setEditForm((f) => ({ ...f, ciudad: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Dirección</Label>
+                            <Input
+                              value={editForm.direccion}
+                              onChange={(e) => setEditForm((f) => ({ ...f, direccion: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Teléfono</Label>
+                            <Input
+                              value={editForm.telefono}
+                              onChange={(e) => setEditForm((f) => ({ ...f, telefono: e.target.value }))}
                             />
                           </div>
                           <div className="space-y-1">
@@ -221,17 +251,17 @@ export default function AllPatients() {
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label>CI</Label>
+                            <Label>Horario</Label>
                             <Input
-                              value={editForm.ci}
-                              onChange={(e) => setEditForm((f) => ({ ...f, ci: e.target.value }))}
+                              value={editForm.horario}
+                              onChange={(e) => setEditForm((f) => ({ ...f, horario: e.target.value }))}
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label>Teléfono</Label>
+                            <Label>Descripción</Label>
                             <Input
-                              value={editForm.phone}
-                              onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                              value={editForm.descripcion}
+                              onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))}
                             />
                           </div>
                         </div>
@@ -261,17 +291,17 @@ export default function AllPatients() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>¿Eliminar Paciente?</AlertDialogTitle>
+                          <AlertDialogTitle>¿Eliminar Clínica?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta acción eliminará permanentemente a <strong>{pat.name}</strong> y
-                            todos sus datos del sistema. No se puede deshacer.
+                            Esta acción eliminará permanentemente <strong>{clinic.nombre}</strong> y
+                            todas sus especialidades asociadas. No se puede deshacer.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-red-600 hover:bg-red-700"
-                            onClick={() => handleDelete(pat.id, pat.name)}
+                            onClick={() => handleDelete(clinic.id, clinic.nombre)}
                           >
                             Sí, eliminar
                           </AlertDialogAction>
@@ -284,32 +314,41 @@ export default function AllPatients() {
               <CardContent className="space-y-3 text-sm text-gray-700">
                 <div className="border-t pt-3 space-y-1.5">
                   <p className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <strong>Email:</strong> {pat.email}
+                    <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                    {clinic.direccion}
                   </p>
-                  <p className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <strong>Teléfono:</strong> {pat.phone || 'No registrado'}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <strong>Registro:</strong>{' '}
-                    {pat.createdAt
-                      ? new Date(pat.createdAt).toLocaleDateString('es-ES', {
-                          day: '2-digit',
-                          month: 'long',
-                          year: 'numeric',
-                        })
-                      : 'No disponible'}
-                  </p>
+                  {clinic.telefono && (
+                    <p className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-gray-400" />
+                      {clinic.telefono}
+                    </p>
+                  )}
+                  {clinic.email && (
+                    <p className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      {clinic.email}
+                    </p>
+                  )}
+                  {clinic.horario && (
+                    <p className="text-xs text-gray-500">🕐 {clinic.horario}</p>
+                  )}
                 </div>
+                {clinic.especialidades && clinic.especialidades.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-2 border-t">
+                    {clinic.especialidades.map((esp) => (
+                      <Badge key={esp} variant="secondary" className="text-xs">
+                        {esp}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))
         ) : (
           <div className="col-span-full text-center py-12">
-            <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="font-semibold text-gray-900 mb-1">No se encontraron pacientes</h3>
+            <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="font-semibold text-gray-900 mb-1">No se encontraron clínicas</h3>
             <p className="text-gray-500 text-sm">Prueba ajustando los términos de búsqueda.</p>
           </div>
         )}
