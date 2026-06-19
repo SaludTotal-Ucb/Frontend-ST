@@ -64,27 +64,37 @@ export default function AllClinics() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editClinic, setEditClinic] = useState<ClinicRecord | null>(null);
   const [editForm, setEditForm] = useState({
-    nombre: '', ciudad: '', direccion: '', telefono: '', email: '', horario: '', descripcion: '',
+    nombre: '',
+    ciudad: '',
+    direccion: '',
+    telefono: '',
+    email: '',
+    horario: '',
+    descripcion: '',
   });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const fetchClinics = async () => {
+      try {
+        setLoading(true);
+        const res = await adminService.getClinicas();
+        const responseData = res as { data?: unknown };
+        const list = Array.isArray(res)
+          ? res
+          : Array.isArray(responseData?.data)
+            ? responseData.data
+            : [];
+        setClinics(list as ClinicRecord[]);
+      } catch (error) {
+        console.error('Error al obtener clínicas:', error);
+        toast.error('Error al cargar clínicas');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchClinics();
   }, []);
-
-  const fetchClinics = async () => {
-    try {
-      setLoading(true);
-      const res = await adminService.getClinicas();
-      const list = Array.isArray(res) ? res : Array.isArray((res as any)?.data) ? (res as any).data : [];
-      setClinics(list as ClinicRecord[]);
-    } catch (error) {
-      console.error('Error al obtener clínicas:', error);
-      toast.error('Error al cargar clínicas');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openEdit = (clinic: ClinicRecord) => {
     setEditClinic(clinic);
@@ -105,11 +115,7 @@ export default function AllClinics() {
       setSaving(true);
       await adminService.updateClinica(editClinic.id, editForm);
       toast.success('Clínica actualizada correctamente');
-      setClinics((prev) =>
-        prev.map((c) =>
-          c.id === editClinic.id ? { ...c, ...editForm } : c,
-        ),
-      );
+      setClinics((prev) => prev.map((c) => (c.id === editClinic.id ? { ...c, ...editForm } : c)));
       setEditClinic(null);
     } catch (error) {
       toast.error('Error al actualizar la clínica');
@@ -157,7 +163,11 @@ export default function AllClinics() {
           <h2 className="text-2xl font-bold text-gray-900">Todas las Clínicas</h2>
           <p className="text-gray-600">Gestión de centros médicos registrados en el sistema</p>
         </div>
-        <Button variant="outline" onClick={() => navigate('/admin/register-clinic')} className="gap-2">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/admin/register-clinic')}
+          className="gap-2"
+        >
           <Plus className="w-4 h-4" />
           Registrar Clínica
         </Button>
@@ -190,7 +200,9 @@ export default function AllClinics() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <CardTitle className="text-lg font-bold text-gray-900">{clinic.nombre}</CardTitle>
+                    <CardTitle className="text-lg font-bold text-gray-900">
+                      {clinic.nombre}
+                    </CardTitle>
                     <CardDescription className="flex items-center gap-1.5 mt-1 font-medium text-purple-600">
                       <MapPin className="w-4 h-4" />
                       {clinic.ciudad}
@@ -218,28 +230,36 @@ export default function AllClinics() {
                             <Label>Nombre</Label>
                             <Input
                               value={editForm.nombre}
-                              onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, nombre: e.target.value }))
+                              }
                             />
                           </div>
                           <div className="space-y-1">
                             <Label>Ciudad</Label>
                             <Input
                               value={editForm.ciudad}
-                              onChange={(e) => setEditForm((f) => ({ ...f, ciudad: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, ciudad: e.target.value }))
+                              }
                             />
                           </div>
                           <div className="space-y-1">
                             <Label>Dirección</Label>
                             <Input
                               value={editForm.direccion}
-                              onChange={(e) => setEditForm((f) => ({ ...f, direccion: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, direccion: e.target.value }))
+                              }
                             />
                           </div>
                           <div className="space-y-1">
                             <Label>Teléfono</Label>
                             <Input
                               value={editForm.telefono}
-                              onChange={(e) => setEditForm((f) => ({ ...f, telefono: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, telefono: e.target.value }))
+                              }
                             />
                           </div>
                           <div className="space-y-1">
@@ -247,21 +267,27 @@ export default function AllClinics() {
                             <Input
                               type="email"
                               value={editForm.email}
-                              onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, email: e.target.value }))
+                              }
                             />
                           </div>
                           <div className="space-y-1">
                             <Label>Horario</Label>
                             <Input
                               value={editForm.horario}
-                              onChange={(e) => setEditForm((f) => ({ ...f, horario: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, horario: e.target.value }))
+                              }
                             />
                           </div>
                           <div className="space-y-1">
                             <Label>Descripción</Label>
                             <Input
                               value={editForm.descripcion}
-                              onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, descripcion: e.target.value }))
+                              }
                             />
                           </div>
                         </div>
@@ -329,9 +355,7 @@ export default function AllClinics() {
                       {clinic.email}
                     </p>
                   )}
-                  {clinic.horario && (
-                    <p className="text-xs text-gray-500">🕐 {clinic.horario}</p>
-                  )}
+                  {clinic.horario && <p className="text-xs text-gray-500">🕐 {clinic.horario}</p>}
                 </div>
                 {clinic.especialidades && clinic.especialidades.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-2 border-t">

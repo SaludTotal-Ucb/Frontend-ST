@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://saludtotal.com 
+      url: https://frontend-st.onrender.com 
       
     steps:
       - name: Download Build Artifact
@@ -64,9 +64,7 @@ jobs:
           name: frontend-dist
           path: dist/
 
-      - name: Simulate Deployment
+      - name: Trigger Deployment
         run: |
-          echo " Deploying Frontend to Production environment..."
-          echo "Simulating upload of dist/ folder to static hosting..."
-          sleep 2
-          echo " Deployment successful!"
+          echo "Deploying Frontend to Production environment..."
+          echo "Deployment is triggered automatically via Render webhook on push to main."

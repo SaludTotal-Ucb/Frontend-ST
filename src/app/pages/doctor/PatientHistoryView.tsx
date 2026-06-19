@@ -90,7 +90,21 @@ export default function PatientHistoryView() {
     }
   };
 
-  const patientInfo = realPerfil || {
+  interface PatientProfile {
+    name?: string;
+    ci?: string;
+    age?: number;
+    bloodType?: string;
+    allergies?: string;
+    phone?: string;
+    email?: string;
+    birthDate?: string;
+    gender?: string;
+    address?: string;
+    emergencyContact?: string;
+  }
+
+  const patientInfo = (realPerfil as PatientProfile) || {
     name: 'María López Sánchez',
     ci: '23456789',
     age: 45,
@@ -104,8 +118,37 @@ export default function PatientHistoryView() {
     emergencyContact: 'Juan García - 71234567',
   };
 
-  const mapHistorialToRecords = (items: any[]): any[] => {
-    const mapped: any[] = [];
+  interface HistorialItem {
+    id?: string;
+    fecha?: string;
+    created_at?: string;
+    descripcion?: string;
+    tratamiento?: string;
+    diagnostico?: string;
+    medico_encargado?: string;
+    recetas?: {
+      medicamento?: string;
+      dosis?: string;
+      frecuencia?: string;
+      indicaciones?: string;
+    }[];
+  }
+
+  interface MedicalRecord {
+    id?: string;
+    type: string;
+    title: string;
+    doctor: string;
+    specialty: string;
+    date: string;
+    clinic: string;
+    description: string;
+    diagnosis?: string;
+    notes?: string;
+  }
+
+  const mapHistorialToRecords = (items: HistorialItem[]): MedicalRecord[] => {
+    const mapped: MedicalRecord[] = [];
 
     for (const item of items || []) {
       const dateValue = item.fecha || item.created_at || '';
@@ -123,9 +166,11 @@ export default function PatientHistoryView() {
         date: dateValue,
         clinic: 'Centro de Salud',
         description: consultationDescription || 'Sin detalles registrados.',
+        diagnosis: item.diagnostico || 'No especificado',
+        notes: consultationDescription || 'Sin notas',
       });
 
-      (item.recetas || []).forEach((receta: any, index: number) => {
+      (item.recetas || []).forEach((receta, index: number) => {
         const detalle = [
           receta.dosis ? `Dosis: ${receta.dosis}` : '',
           receta.frecuencia ? `Frecuencia: ${receta.frecuencia}` : '',
@@ -143,18 +188,24 @@ export default function PatientHistoryView() {
           date: dateValue,
           clinic: 'Centro de Salud',
           description: detalle || 'Sin detalles de receta.',
+          diagnosis: 'Asociado a la receta',
+          notes: detalle || 'Sin notas',
         });
       });
     }
 
-    return mapped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return mapped.sort(
+      (a, b) => new Date(b.date as string).getTime() - new Date(a.date as string).getTime(),
+    );
   };
 
-  const medicalRecords = realHistorial ? mapHistorialToRecords(realHistorial as any[]) : [];
+  const medicalRecords = realHistorial
+    ? mapHistorialToRecords(realHistorial as HistorialItem[])
+    : [];
 
   const realMedications = realHistorial
-    ? (realHistorial as any[]).flatMap((item) =>
-        (item.recetas || []).map((r: any) => ({
+    ? (realHistorial as HistorialItem[]).flatMap((item) =>
+        (item.recetas || []).map((r) => ({
           name: r.medicamento || 'Medicamento',
           dosage: `${r.dosis || ''} ${r.frecuencia || ''}`.trim() || 'No especificada',
           duration: r.indicaciones || 'Indicaciones médicas',

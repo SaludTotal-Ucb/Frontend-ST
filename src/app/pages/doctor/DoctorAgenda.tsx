@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '../../../hooks/useAuth';
 import { useCitas } from '../../../hooks/useCitas';
+import { appointmentService } from '../../../services/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +56,17 @@ export default function DoctorAgenda() {
       });
     } catch (error) {
       toast.error('Error al cancelar la cita');
+      console.error(error);
+    }
+  };
+
+  const handleConfirmAppointment = async (id: string) => {
+    try {
+      await appointmentService.confirmAppointment(id);
+      setLocalStatuses((prev) => ({ ...prev, [id]: 'confirmed' }));
+      toast.success('Cita confirmada correctamente');
+    } catch (error) {
+      toast.error('Error al confirmar la cita');
       console.error(error);
     }
   };
@@ -113,7 +125,7 @@ export default function DoctorAgenda() {
   const upcomingAppointments = useMemo(() => {
     return filteredAppointments.filter((a) => {
       const status = localStatuses[a.id] || a.status;
-      return status === 'confirmed';
+      return status === 'confirmed' || status === 'pending';
     });
   }, [filteredAppointments, localStatuses]);
 
@@ -200,6 +212,18 @@ export default function DoctorAgenda() {
                           </div>
                         </div>
                       </div>
+
+                      {status === 'pending' && (
+                        <div className="flex gap-2 pt-3 border-t">
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={() => handleConfirmAppointment(appointment.id)}
+                          >
+                            Confirmar Cita
+                          </Button>
+                        </div>
+                      )}
 
                       {status === 'confirmed' && (
                         <div className="flex gap-2 pt-3 border-t">

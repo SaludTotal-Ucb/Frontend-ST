@@ -67,10 +67,15 @@ interface Appointment {
   notas?: string;
 }
 
+interface ClinicRecord {
+  id: string;
+  nombre: string;
+}
+
 export default function AllAppointments() {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [clinics, setClinics] = useState<any[]>([]);
+  const [clinics, setClinics] = useState<ClinicRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -83,28 +88,36 @@ export default function AllAppointments() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [aptsRes, clinicsRes] = await Promise.all([
+          adminService.getAllAppointments(),
+          adminService.getClinicas(),
+        ]);
+        const aptsData = aptsRes as { data?: unknown };
+        const aptsList = Array.isArray(aptsRes)
+          ? aptsRes
+          : Array.isArray(aptsData?.data)
+            ? aptsData.data
+            : [];
+        const clinicsData = clinicsRes as { data?: unknown };
+        const clinicsList = Array.isArray(clinicsRes)
+          ? clinicsRes
+          : Array.isArray(clinicsData?.data)
+            ? clinicsData.data
+            : [];
+        setAppointments(aptsList as Appointment[]);
+        setClinics(clinicsList as ClinicRecord[]);
+      } catch (error) {
+        console.error(error);
+        toast.error('Error al cargar datos');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchData();
   }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [aptsRes, clinicsRes] = await Promise.all([
-        adminService.getAllAppointments(),
-        adminService.getClinicas(),
-      ]);
-      // Both return arrays directly
-      const aptsList = Array.isArray(aptsRes) ? aptsRes : Array.isArray((aptsRes as any)?.data) ? (aptsRes as any).data : [];
-      const clinicsList = Array.isArray(clinicsRes) ? clinicsRes : Array.isArray((clinicsRes as any)?.data) ? (clinicsRes as any).data : [];
-      setAppointments(aptsList as Appointment[]);
-      setClinics(clinicsList);
-    } catch (error) {
-      console.error(error);
-      toast.error('Error al cargar las citas');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openEdit = (apt: Appointment) => {
     setEditApt(apt);
@@ -121,9 +134,7 @@ export default function AllAppointments() {
       toast.success('Cita actualizada correctamente');
       setAppointments((prev) =>
         prev.map((a) =>
-          a.id === editApt.id
-            ? { ...a, status: editForm.estado, notas: editForm.notas }
-            : a,
+          a.id === editApt.id ? { ...a, status: editForm.estado, notas: editForm.notas } : a,
         ),
       );
       setEditApt(null);
@@ -181,10 +192,17 @@ export default function AllAppointments() {
 
   const stats = {
     total: filteredAppointments.length,
-    confirmed: filteredAppointments.filter((a) => a.status === 'confirmed' || a.status === 'confirmada').length,
-    completed: filteredAppointments.filter((a) => a.status === 'completed' || a.status === 'completada').length,
-    cancelled: filteredAppointments.filter((a) => a.status === 'cancelled' || a.status === 'cancelada').length,
-    noShow: filteredAppointments.filter((a) => ['no-show', 'absent', 'ausente'].includes(a.status)).length,
+    confirmed: filteredAppointments.filter(
+      (a) => a.status === 'confirmed' || a.status === 'confirmada',
+    ).length,
+    completed: filteredAppointments.filter(
+      (a) => a.status === 'completed' || a.status === 'completada',
+    ).length,
+    cancelled: filteredAppointments.filter(
+      (a) => a.status === 'cancelled' || a.status === 'cancelada',
+    ).length,
+    noShow: filteredAppointments.filter((a) => ['no-show', 'absent', 'ausente'].includes(a.status))
+      .length,
   };
 
   if (loading) {
@@ -213,11 +231,36 @@ export default function AllAppointments() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card><CardContent className="p-4"><p className="text-sm text-gray-600">Total</p><p className="text-2xl font-bold text-gray-900">{stats.total}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-gray-600">Confirmadas</p><p className="text-2xl font-bold text-green-600">{stats.confirmed}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-gray-600">Completadas</p><p className="text-2xl font-bold text-blue-600">{stats.completed}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-gray-600">Canceladas</p><p className="text-2xl font-bold text-red-600">{stats.cancelled}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-gray-600">No asistió</p><p className="text-2xl font-bold text-orange-600">{stats.noShow}</p></CardContent></Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600">Total</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600">Confirmadas</p>
+            <p className="text-2xl font-bold text-green-600">{stats.confirmed}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600">Completadas</p>
+            <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600">Canceladas</p>
+            <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600">No asistió</p>
+            <p className="text-2xl font-bold text-orange-600">{stats.noShow}</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -342,14 +385,20 @@ export default function AllAppointments() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-sm">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-700"><strong>Paciente:</strong> {apt.patient}</span>
+                          <span className="text-gray-700">
+                            <strong>Paciente:</strong> {apt.patient}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-gray-700"><strong>CI:</strong> {apt.patientCI}</span>
+                          <span className="text-gray-700">
+                            <strong>CI:</strong> {apt.patientCI}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Stethoscope className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-700">{apt.doctor} - {apt.specialty}</span>
+                          <span className="text-gray-700">
+                            {apt.doctor} - {apt.specialty}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 sm:col-span-2">
                           <Building2 className="w-4 h-4 text-gray-400" />
@@ -399,14 +448,18 @@ export default function AllAppointments() {
                               <Input
                                 type="datetime-local"
                                 value={editForm.fecha}
-                                onChange={(e) => setEditForm((f) => ({ ...f, fecha: e.target.value }))}
+                                onChange={(e) =>
+                                  setEditForm((f) => ({ ...f, fecha: e.target.value }))
+                                }
                               />
                             </div>
                             <div className="space-y-1">
                               <Label>Notas</Label>
                               <Input
                                 value={editForm.notas}
-                                onChange={(e) => setEditForm((f) => ({ ...f, notas: e.target.value }))}
+                                onChange={(e) =>
+                                  setEditForm((f) => ({ ...f, notas: e.target.value }))
+                                }
                                 placeholder="Observaciones opcionales..."
                               />
                             </div>

@@ -64,23 +64,26 @@ export default function AllPatients() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        setLoading(true);
+        const res = await adminService.getPacientes();
+        const responseData = res as { data?: unknown };
+        const list = Array.isArray(res)
+          ? res
+          : Array.isArray(responseData?.data)
+            ? responseData.data
+            : [];
+        setPatients(list as PatientRecord[]);
+      } catch (error) {
+        console.error('Error al obtener pacientes:', error);
+        toast.error('Error al cargar pacientes');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchPatients();
   }, []);
-
-  const fetchPatients = async () => {
-    try {
-      setLoading(true);
-      const res = await adminService.getPacientes();
-      // Backend returns array directly
-      const list = Array.isArray(res) ? res : Array.isArray((res as any)?.data) ? (res as any).data : [];
-      setPatients(list as PatientRecord[]);
-    } catch (error) {
-      console.error('Error al obtener pacientes:', error);
-      toast.error('Error al cargar pacientes');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openEdit = (pat: PatientRecord) => {
     setEditPatient(pat);
@@ -93,9 +96,7 @@ export default function AllPatients() {
       setSaving(true);
       await adminService.updatePaciente(editPatient.id, editForm);
       toast.success('Paciente actualizado correctamente');
-      setPatients((prev) =>
-        prev.map((p) => (p.id === editPatient.id ? { ...p, ...editForm } : p)),
-      );
+      setPatients((prev) => prev.map((p) => (p.id === editPatient.id ? { ...p, ...editForm } : p)));
       setEditPatient(null);
     } catch (error) {
       toast.error('Error al actualizar el paciente');
@@ -148,7 +149,11 @@ export default function AllPatients() {
           <Plus className="w-4 h-4" />
           Nueva Cita
         </Button>
-        <Button variant="outline" onClick={() => navigate('/admin/register-patient')} className="gap-2">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/admin/register-patient')}
+          className="gap-2"
+        >
           <User className="w-4 h-4" />
           Registrar Paciente
         </Button>
@@ -217,7 +222,9 @@ export default function AllPatients() {
                             <Input
                               type="email"
                               value={editForm.email}
-                              onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, email: e.target.value }))
+                              }
                             />
                           </div>
                           <div className="space-y-1">
@@ -231,7 +238,9 @@ export default function AllPatients() {
                             <Label>Teléfono</Label>
                             <Input
                               value={editForm.phone}
-                              onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                              onChange={(e) =>
+                                setEditForm((f) => ({ ...f, phone: e.target.value }))
+                              }
                             />
                           </div>
                         </div>

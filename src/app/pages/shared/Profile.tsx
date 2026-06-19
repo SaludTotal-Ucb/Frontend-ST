@@ -88,7 +88,7 @@ export default function Profile({ role }: ProfileProps) {
     },
   };
 
-  const data = profileData[role] as any;
+  const data = profileData[role as keyof typeof profileData] as Record<string, unknown>;
 
   const handleStartEdit = () => {
     if (realPerfil) {
@@ -136,8 +136,16 @@ export default function Profile({ role }: ProfileProps) {
     });
   };
 
-  const mapHistorialToRecords = (items: any[]): any[] => {
-    const mapped: any[] = [];
+  interface HistorialItem {
+    fecha?: string;
+    created_at?: string;
+    medico_encargado?: string;
+    diagnostico?: string;
+    tratamiento?: string;
+  }
+
+  const mapHistorialToRecords = (items: HistorialItem[]): Record<string, unknown>[] => {
+    const mapped: Record<string, unknown>[] = [];
     for (const item of items || []) {
       const dateValue = item.fecha || item.created_at || '';
       mapped.push({
@@ -151,7 +159,9 @@ export default function Profile({ role }: ProfileProps) {
     return mapped;
   };
 
-  const medicalHistory = realHistorial ? mapHistorialToRecords(realHistorial as any[]) : [];
+  const medicalHistory = realHistorial
+    ? mapHistorialToRecords(realHistorial as HistorialItem[])
+    : [];
 
   if (role === 'patient' && isLoadingPerfil) {
     return (
