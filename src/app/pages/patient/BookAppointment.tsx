@@ -165,6 +165,17 @@ export default function BookAppointment() {
     );
   }, [doctorAppointments]);
 
+  const isPastTime = (time: string) => {
+    if (!selectedDate) return false;
+    const now = new Date();
+    // Only check past time if the selected date is today
+    if (selectedDate.toDateString() !== now.toDateString()) return false;
+    const [hour, minute] = time.split(':').map(Number);
+    if (now.getHours() > hour) return true;
+    if (now.getHours() === hour && now.getMinutes() >= minute) return true;
+    return false;
+  };
+
   useEffect(() => {
     if (selectedTime && occupiedTimes.has(selectedTime)) {
       setSelectedTime('');
@@ -411,20 +422,22 @@ export default function BookAppointment() {
                 <div className="grid grid-cols-5 gap-2">
                   {availableTimes.map((time) => {
                     const isOccupied = occupiedTimes.has(time);
+                    const isPast = isPastTime(time);
+                    const isDisabled = isOccupied || isPast;
                     return (
                       <button
                         key={time}
                         onClick={() => setSelectedTime(time)}
-                        disabled={isOccupied}
+                        disabled={isDisabled}
                         className={`py-2 px-3 rounded-md border text-sm transition-all ${
-                          isOccupied
+                          isDisabled
                             ? 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed'
                             : selectedTime === time
                               ? 'border-blue-600 bg-blue-600 text-white'
                               : 'border-gray-300 hover:border-gray-400'
                         }`}
                       >
-                        {isOccupied ? `${time} ocupado` : time}
+                        {isOccupied ? `${time} ocupado` : isPast ? `${time} pasado` : time}
                       </button>
                     );
                   })}
